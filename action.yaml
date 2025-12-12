@@ -1,0 +1,58 @@
+name: 'ReleasePilot'
+description: 'AI-powered release management for modern software teams'
+author: 'Felix Geelhaar'
+
+branding:
+  icon: 'package'
+  color: 'blue'
+
+inputs:
+  version:
+    description: 'Version of release-pilot to use (e.g., v1.3.0 or latest)'
+    required: false
+    default: 'latest'
+  
+  command:
+    description: 'Command to run: full (default), plan, bump, notes, approve, publish, or custom'
+    required: false
+    default: 'full'
+  
+  github-token:
+    description: 'GitHub token for creating releases and uploading assets'
+    required: false
+  
+  config:
+    description: 'Path to release config file'
+    required: false
+  
+  auto-approve:
+    description: 'Automatically approve releases without manual confirmation'
+    required: false
+    default: 'true'
+  
+  dry-run:
+    description: 'Run in dry-run mode without making actual changes'
+    required: false
+    default: 'false'
+  
+  working-directory:
+    description: 'Working directory for release-pilot commands'
+    required: false
+    default: '.'
+
+outputs:
+  version:
+    description: 'The new version that was created or bumped to'
+  
+  release-url:
+    description: 'URL of the created GitHub release'
+  
+  tag-name:
+    description: 'Git tag name for the release'
+  
+  release-id:
+    description: 'GitHub release ID'
+
+runs:
+  using: 'node20'
+  main: 'dist/index.js'
