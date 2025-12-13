@@ -97,10 +97,10 @@ function detectPlatform(): Platform {
 
 function getDownloadInfo(version: string, platform: Platform): DownloadInfo {
   const versionTag = version === 'latest' ? version : `tags/${version}`
-  
+
   const ext = platform.os === 'Windows' ? 'zip' : 'tar.gz'
   const filename = `release-pilot_${platform.os}_${platform.arch}.${ext}`
-  
+
   let url: string
   if (version === 'latest') {
     url = `https://github.com/${REPO_OWNER}/${REPO_NAME}/releases/latest/download/${filename}`
@@ -125,15 +125,15 @@ async function verifyChecksum(
 ): Promise<void> {
   try {
     core.info('Verifying checksum...')
-    
+
     // Download checksums file
     const checksumsPath = await tc.downloadTool(checksumUrl)
     const checksumsContent = fs.readFileSync(checksumsPath, 'utf-8')
-    
+
     // Parse checksums file
     const lines = checksumsContent.split('\n')
     let expectedChecksum: string | undefined
-    
+
     for (const line of lines) {
       const parts = line.trim().split(/\s+/)
       if (parts.length >= 2 && parts[1] === filename) {
@@ -141,23 +141,23 @@ async function verifyChecksum(
         break
       }
     }
-    
+
     if (!expectedChecksum) {
       core.warning(`Checksum not found for ${filename}, skipping verification`)
       return
     }
-    
+
     // Calculate actual checksum
     const crypto = await import('crypto')
     const fileBuffer = fs.readFileSync(archivePath)
     const actualChecksum = crypto.createHash('sha256').update(fileBuffer).digest('hex')
-    
+
     if (actualChecksum !== expectedChecksum) {
       throw new Error(
         `Checksum mismatch!\nExpected: ${expectedChecksum}\nActual: ${actualChecksum}`
       )
     }
-    
+
     core.info('✓ Checksum verified')
   } catch (error) {
     core.warning(`Failed to verify checksum: ${error}`)

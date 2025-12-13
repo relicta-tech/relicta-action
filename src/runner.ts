@@ -20,11 +20,11 @@ export async function runReleasePilot(
 
   // Common args
   const commonArgs: string[] = []
-  
+
   if (inputs.config) {
     commonArgs.push('--config', inputs.config)
   }
-  
+
   if (inputs.dryRun) {
     commonArgs.push('--dry-run')
   }
@@ -36,7 +36,7 @@ export async function runReleasePilot(
       await executeCommand(binaryPath, ['plan', ...commonArgs], env, inputs.workingDirectory)
       await executeCommand(binaryPath, ['bump', ...commonArgs], env, inputs.workingDirectory)
       await executeCommand(binaryPath, ['notes', ...commonArgs], env, inputs.workingDirectory)
-      
+
       if (inputs.autoApprove) {
         await executeCommand(
           binaryPath,
@@ -47,14 +47,14 @@ export async function runReleasePilot(
       } else {
         await executeCommand(binaryPath, ['approve', ...commonArgs], env, inputs.workingDirectory)
       }
-      
+
       const publishOutput = await executeCommand(
         binaryPath,
         ['publish', ...commonArgs],
         env,
         inputs.workingDirectory
       )
-      
+
       // Parse outputs from publish command
       parsePublishOutput(publishOutput, outputs)
       break
@@ -69,7 +69,7 @@ export async function runReleasePilot(
         env,
         inputs.workingDirectory
       )
-      
+
       if (inputs.command === 'publish') {
         parsePublishOutput(cmdOutput, outputs)
       }
@@ -120,14 +120,14 @@ async function executeCommand(
   }
 
   core.startGroup(`Running: release-pilot ${args.join(' ')}`)
-  
+
   try {
     const exitCode = await exec.exec(binaryPath, args, options)
-    
+
     if (exitCode !== 0) {
       throw new Error(`Command failed with exit code ${exitCode}`)
     }
-    
+
     core.endGroup()
     return output
   } catch (error) {
@@ -139,23 +139,23 @@ async function executeCommand(
 function parsePublishOutput(output: string, outputs: ActionOutputs): void {
   // Parse output for version, release URL, tag name, etc.
   // ReleasePilot outputs structured information that we can parse
-  
+
   // Look for patterns like:
   // - "Created release v1.3.0"
   // - "Release URL: https://github.com/..."
   // - "Tag: v1.3.0"
-  
+
   const versionMatch = output.match(/(?:version|tag):\s*v?(\d+\.\d+\.\d+)/i)
   if (versionMatch) {
     outputs.version = versionMatch[1]
     outputs.tagName = `v${versionMatch[1]}`
   }
-  
+
   const urlMatch = output.match(/(?:release url|url):\s*(https:\/\/github\.com\/[^\s]+)/i)
   if (urlMatch) {
     outputs.releaseUrl = urlMatch[1]
   }
-  
+
   const idMatch = output.match(/(?:release id|id):\s*(\d+)/i)
   if (idMatch) {
     outputs.releaseId = idMatch[1]
