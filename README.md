@@ -115,6 +115,11 @@ ai:
 - **Azure OpenAI** (AZURE_OPENAI_KEY + AZURE_OPENAI_ENDPOINT) - Enterprise-ready
 - **Ollama** (OLLAMA_HOST) - Free, runs locally
 
+**Multiple API Keys?** If you have multiple AI provider keys configured, ReleasePilot will:
+1. ⚠️ Show a warning about detected keys
+2. Auto-select based on priority: OpenAI → Anthropic → Gemini → Azure → Ollama
+3. Allow override via `RELEASE_PILOT_AI_PROVIDER` env var or config file
+
 ### 📝 Inline Configuration (Workflow-as-Code)
 
 **Want everything in your workflow file?** Use `config-content` for inline YAML:
@@ -357,6 +362,31 @@ Require manual approval before publishing:
 - `GITHUB_TOKEN` with `contents: write` permission
 - **Optional**: `release.config.yaml` for advanced configuration (uses sensible defaults otherwise)
 - **Optional**: AI provider API key for AI-generated release notes
+
+## Configuration Validation
+
+ReleasePilot validates your configuration and provides helpful feedback:
+
+### ❌ **Errors** (Fatal - Action Will Fail)
+- Invalid AI provider (must be: openai, anthropic, gemini, azure-openai, ollama)
+- Missing required fields (e.g., API key when AI enabled)
+- Invalid URLs or file paths
+- Invalid value ranges (e.g., temperature must be 0-2)
+- Azure OpenAI without `base_url` (endpoint required)
+
+### ⚠️ **Warnings** (Non-Fatal - Action Continues)
+- Deprecated `claude` provider (use `anthropic` instead)
+- High AI temperature values (>1.0 is unusual)
+- Azure OpenAI with OpenAI-format API key
+- `link_commits` enabled without `repository_url`
+- `link_issues` enabled without `issue_url`
+
+**Example validation output:**
+```
+⚠️  Configuration Warnings:
+  - ai.provider: 'claude' is deprecated, use 'anthropic' instead
+  - ai.temperature: value 1.5 is unusually high (typical range is 0.0-1.0)
+```
 
 ## Configuration
 
