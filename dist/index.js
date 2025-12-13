@@ -28320,7 +28320,6 @@ function detectPlatform() {
     return { os, arch };
 }
 function getDownloadInfo(version, platform) {
-    const versionTag = version === 'latest' ? version : `tags/${version}`;
     const ext = platform.os === 'Windows' ? 'zip' : 'tar.gz';
     const filename = `release-pilot_${platform.os}_${platform.arch}.${ext}`;
     let url;
@@ -28541,7 +28540,7 @@ async function runReleasePilot(binaryPath, inputs) {
     }
     // Execute command(s)
     switch (inputs.command.toLowerCase()) {
-        case 'full':
+        case 'full': {
             // Run complete workflow
             await executeCommand(binaryPath, ['plan', ...commonArgs], env, inputs.workingDirectory);
             await executeCommand(binaryPath, ['bump', ...commonArgs], env, inputs.workingDirectory);
@@ -28556,33 +28555,36 @@ async function runReleasePilot(binaryPath, inputs) {
             // Parse outputs from publish command
             parsePublishOutput(publishOutput, outputs);
             break;
+        }
         case 'plan':
         case 'bump':
         case 'notes':
-        case 'publish':
+        case 'publish': {
             const cmdOutput = await executeCommand(binaryPath, [inputs.command, ...commonArgs], env, inputs.workingDirectory);
             if (inputs.command === 'publish') {
                 parsePublishOutput(cmdOutput, outputs);
             }
             break;
-        case 'approve':
+        }
+        case 'approve': {
             const approveArgs = [...commonArgs];
             if (inputs.autoApprove) {
                 approveArgs.unshift('--yes');
             }
             await executeCommand(binaryPath, ['approve', ...approveArgs], env, inputs.workingDirectory);
             break;
-        default:
+        }
+        default: {
             // Custom command - pass through as-is
             const customArgs = inputs.command.split(' ');
             await executeCommand(binaryPath, [...customArgs, ...commonArgs], env, inputs.workingDirectory);
             break;
+        }
     }
     return outputs;
 }
 async function executeCommand(binaryPath, args, env, cwd) {
     let output = '';
-    let errorOutput = '';
     const options = {
         env,
         cwd,
@@ -28594,7 +28596,6 @@ async function executeCommand(binaryPath, args, env, cwd) {
             },
             stderr: (data) => {
                 const str = data.toString();
-                errorOutput += str;
                 core.warning(str);
             }
         }

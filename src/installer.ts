@@ -96,8 +96,6 @@ function detectPlatform(): Platform {
 }
 
 function getDownloadInfo(version: string, platform: Platform): DownloadInfo {
-  const versionTag = version === 'latest' ? version : `tags/${version}`
-
   const ext = platform.os === 'Windows' ? 'zip' : 'tar.gz'
   const filename = `release-pilot_${platform.os}_${platform.arch}.${ext}`
 

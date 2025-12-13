@@ -31,7 +31,7 @@ export async function runReleasePilot(
 
   // Execute command(s)
   switch (inputs.command.toLowerCase()) {
-    case 'full':
+    case 'full': {
       // Run complete workflow
       await executeCommand(binaryPath, ['plan', ...commonArgs], env, inputs.workingDirectory)
       await executeCommand(binaryPath, ['bump', ...commonArgs], env, inputs.workingDirectory)
@@ -58,11 +58,12 @@ export async function runReleasePilot(
       // Parse outputs from publish command
       parsePublishOutput(publishOutput, outputs)
       break
+    }
 
     case 'plan':
     case 'bump':
     case 'notes':
-    case 'publish':
+    case 'publish': {
       const cmdOutput = await executeCommand(
         binaryPath,
         [inputs.command, ...commonArgs],
@@ -74,20 +75,23 @@ export async function runReleasePilot(
         parsePublishOutput(cmdOutput, outputs)
       }
       break
+    }
 
-    case 'approve':
+    case 'approve': {
       const approveArgs = [...commonArgs]
       if (inputs.autoApprove) {
         approveArgs.unshift('--yes')
       }
       await executeCommand(binaryPath, ['approve', ...approveArgs], env, inputs.workingDirectory)
       break
+    }
 
-    default:
+    default: {
       // Custom command - pass through as-is
       const customArgs = inputs.command.split(' ')
       await executeCommand(binaryPath, [...customArgs, ...commonArgs], env, inputs.workingDirectory)
       break
+    }
   }
 
   return outputs
@@ -100,7 +104,6 @@ async function executeCommand(
   cwd: string
 ): Promise<string> {
   let output = ''
-  let errorOutput = ''
 
   const options: exec.ExecOptions = {
     env,
@@ -113,7 +116,6 @@ async function executeCommand(
       },
       stderr: (data: Buffer) => {
         const str = data.toString()
-        errorOutput += str
         core.warning(str)
       }
     }
