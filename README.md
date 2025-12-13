@@ -61,6 +61,60 @@ jobs:
 5. ✅ Creates GitHub release with assets
 6. 🎉 Done!
 
+### 🤖 AI-Powered Release Notes (Zero Config!)
+
+**Want AI-generated release notes? Just add your API key as a secret:**
+
+```yaml
+- uses: felixgeelhaar/release-pilot-action@v1
+  with:
+    github-token: ${{ secrets.GITHUB_TOKEN }}
+  env:
+    # Add ONE of these secrets - AI auto-enables!
+    OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}         # OpenAI (gpt-4o-mini)
+    # ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }} # Anthropic (claude-sonnet-4)
+    # GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}       # Google Gemini (gemini-2.0-flash-exp)
+```
+
+**That's it!** No config file needed. ReleasePilot automatically:
+- ✅ Detects your API key from environment
+- ✅ Enables AI with sensible defaults
+- ✅ Generates professional release notes
+- ✅ Uses fast, cost-effective models by default
+
+#### Customize AI Settings (Optional)
+
+Override default AI settings with environment variables:
+
+```yaml
+env:
+  OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+  RELEASE_PILOT_AI_MODEL: "gpt-4o"           # Use a different model
+  RELEASE_PILOT_AI_TEMPERATURE: "0.7"        # Adjust creativity
+  RELEASE_PILOT_AI_TONE: "professional"      # Change tone
+```
+
+Or use a config file for full control:
+
+```yaml
+# release.config.yaml
+ai:
+  enabled: true
+  provider: openai  # openai, anthropic, gemini, azure-openai, ollama
+  api_key: ${OPENAI_API_KEY}
+  model: gpt-4o
+  tone: professional
+  audience: developers
+  temperature: 0.7
+```
+
+**Supported AI Providers:**
+- **OpenAI** (OPENAI_API_KEY) - Fast, reliable, great for most use cases
+- **Anthropic** (ANTHROPIC_API_KEY) - Excellent understanding of technical content
+- **Google Gemini** (GEMINI_API_KEY) - Cost-effective with long context windows
+- **Azure OpenAI** (AZURE_OPENAI_KEY + AZURE_OPENAI_ENDPOINT) - Enterprise-ready
+- **Ollama** (OLLAMA_HOST) - Free, runs locally
+
 ### Individual Commands
 
 Run specific commands instead of the full workflow:
@@ -245,12 +299,15 @@ Require manual approval before publishing:
 ## Requirements
 
 - Git repository with commits following [Conventional Commits](https://www.conventionalcommits.org/)
-- `release.config.yaml` configuration file (or use defaults)
 - `GITHUB_TOKEN` with `contents: write` permission
+- **Optional**: `release.config.yaml` for advanced configuration (uses sensible defaults otherwise)
+- **Optional**: AI provider API key for AI-generated release notes
 
 ## Configuration
 
-ReleasePilot uses a `release.config.yaml` file. See the [ReleasePilot documentation](https://github.com/felixgeelhaar/release-pilot) for full configuration options.
+**Zero config required!** ReleasePilot works out of the box with sensible defaults.
+
+For advanced customization, create a `release.config.yaml` file. See the [ReleasePilot documentation](https://github.com/felixgeelhaar/release-pilot) for full configuration options.
 
 Example minimal config:
 
