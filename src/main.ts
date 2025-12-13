@@ -11,6 +11,7 @@ async function run(): Promise<void> {
       command: core.getInput('command') || 'full',
       githubToken: core.getInput('github-token') || process.env.GITHUB_TOKEN || '',
       config: core.getInput('config') || undefined,
+      configContent: core.getInput('config-content') || undefined,
       autoApprove: core.getBooleanInput('auto-approve'),
       dryRun: core.getBooleanInput('dry-run'),
       workingDirectory: core.getInput('working-directory') || '.'

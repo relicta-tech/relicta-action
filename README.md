@@ -115,6 +115,58 @@ ai:
 - **Azure OpenAI** (AZURE_OPENAI_KEY + AZURE_OPENAI_ENDPOINT) - Enterprise-ready
 - **Ollama** (OLLAMA_HOST) - Free, runs locally
 
+### 📝 Inline Configuration (Workflow-as-Code)
+
+**Want everything in your workflow file?** Use `config-content` for inline YAML:
+
+```yaml
+- uses: felixgeelhaar/release-pilot-action@v1
+  with:
+    github-token: ${{ secrets.GITHUB_TOKEN }}
+    config-content: |
+      ai:
+        enabled: true
+        provider: openai
+        api_key: ${OPENAI_API_KEY}
+        model: gpt-4o
+        tone: professional
+        audience: developers
+
+      versioning:
+        strategy: conventional
+        tag_prefix: v
+        git_sign: false
+
+      changelog:
+        file: CHANGELOG.md
+        format: markdown
+        include_commit_hash: true
+
+      plugins:
+        - name: github
+          enabled: true
+          config:
+            assets:
+              - "dist/*.tar.gz"
+              - "dist/*.zip"
+
+        - name: slack
+          enabled: true
+          config:
+            webhook_url: ${SLACK_WEBHOOK_URL}
+            notify_on_success: true
+  env:
+    OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+    SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+```
+
+**Benefits:**
+- ✅ Everything in one place (workflow file)
+- ✅ No separate config file in repo
+- ✅ Proper YAML structure (not flattened)
+- ✅ Easy to version control with workflow
+- ✅ Great for monorepos with multiple release workflows
+
 ### Individual Commands
 
 Run specific commands instead of the full workflow:
@@ -249,9 +301,12 @@ Require manual approval before publishing:
 | `command` | Command to run: `full`, `plan`, `bump`, `notes`, `approve`, `publish` | No | `full` |
 | `github-token` | GitHub token for creating releases | Yes | `${{ github.token }}` |
 | `config` | Path to release config file | No | - |
+| `config-content` | Inline YAML configuration (alternative to config file) | No | - |
 | `auto-approve` | Automatically approve releases | No | `true` |
 | `dry-run` | Run in dry-run mode | No | `false` |
 | `working-directory` | Working directory for commands | No | `.` |
+
+**Note:** If both `config` and `config-content` are provided, `config-content` takes precedence.
 
 ## Outputs
 
@@ -307,7 +362,68 @@ Require manual approval before publishing:
 
 **Zero config required!** ReleasePilot works out of the box with sensible defaults.
 
-For advanced customization, create a `release.config.yaml` file. See the [ReleasePilot documentation](https://github.com/felixgeelhaar/release-pilot) for full configuration options.
+### Three Ways to Configure
+
+<table>
+<tr>
+<th>Approach</th>
+<th>Best For</th>
+<th>How It Works</th>
+</tr>
+<tr>
+<td><strong>1. Zero-Config</strong></td>
+<td>Quick start, simple projects</td>
+<td>Just add API key as GitHub Secret - AI auto-enables</td>
+</tr>
+<tr>
+<td><strong>2. Inline YAML</strong><br/>(<code>config-content</code>)</td>
+<td>Workflow-as-code, monorepos</td>
+<td>Full YAML config in workflow file</td>
+</tr>
+<tr>
+<td><strong>3. Config File</strong><br/>(<code>release.config.yaml</code>)</td>
+<td>Shared config, power users</td>
+<td>Traditional config file in repo</td>
+</tr>
+</table>
+
+### What's Supported
+
+**AI Providers (5 total):**
+- ✅ **OpenAI** (GPT-4, GPT-4o, GPT-4o-mini) - `OPENAI_API_KEY`
+- ✅ **Anthropic** (Claude Sonnet, Opus) - `ANTHROPIC_API_KEY`
+- ✅ **Google Gemini** (2.0 Flash, 1.5 Pro) - `GEMINI_API_KEY`
+- ✅ **Azure OpenAI** (Enterprise) - `AZURE_OPENAI_KEY` + `AZURE_OPENAI_ENDPOINT`
+- ✅ **Ollama** (Local, free) - `OLLAMA_HOST`
+
+**Plugins (13 total):**
+- ✅ **Version Control:** GitHub, GitLab
+- ✅ **Notifications:** Slack, Discord, Microsoft Teams
+- ✅ **Project Management:** Jira, LaunchNotes
+- ✅ **Package Managers:** npm, PyPI, Cargo, RubyGems
+- ✅ **Distribution:** Homebrew, Docker
+
+**Versioning Strategies:**
+- ✅ Conventional Commits (semver auto-bump)
+- ✅ Manual versioning
+- ✅ Calendar versioning (CalVer)
+
+**Changelog Formats:**
+- ✅ Markdown
+- ✅ JSON
+- ✅ YAML
+
+**Commands:**
+- ✅ `full` - Complete workflow (plan → bump → notes → approve → publish)
+- ✅ `plan` - Analyze changes
+- ✅ `bump` - Calculate version
+- ✅ `notes` - Generate release notes
+- ✅ `approve` - Review & approve
+- ✅ `publish` - Create release
+
+### Example Configuration
+
+For advanced customization, use `config-content` or create a `release.config.yaml` file. See the [ReleasePilot documentation](https://github.com/felixgeelhaar/release-pilot) for full options.
 
 Example minimal config:
 

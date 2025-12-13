@@ -24,7 +24,11 @@ inputs:
   config:
     description: 'Path to release config file'
     required: false
-  
+
+  config-content:
+    description: 'Inline YAML configuration (alternative to config file)'
+    required: false
+
   auto-approve:
     description: 'Automatically approve releases without manual confirmation'
     required: false

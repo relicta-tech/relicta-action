@@ -3,6 +3,7 @@ export interface ActionInputs {
   command: string
   githubToken: string
   config?: string
+  configContent?: string
   autoApprove: boolean
   dryRun: boolean
   workingDirectory: string

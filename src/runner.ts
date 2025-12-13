@@ -1,5 +1,8 @@
 import * as core from '@actions/core'
 import * as exec from '@actions/exec'
+import * as fs from 'fs'
+import * as path from 'path'
+import * as os from 'os'
 import {ActionInputs, ActionOutputs} from './types'
 
 export async function runReleasePilot(
@@ -7,94 +10,117 @@ export async function runReleasePilot(
   inputs: ActionInputs
 ): Promise<ActionOutputs> {
   const outputs: ActionOutputs = {}
+  let tempConfigPath: string | null = null
 
-  // Set environment variables
-  const env: {[key: string]: string} = {
-    ...process.env,
-    GITHUB_TOKEN: inputs.githubToken
-  }
+  try {
+    // Set environment variables
+    const env: {[key: string]: string} = {
+      ...process.env,
+      GITHUB_TOKEN: inputs.githubToken
+    }
 
-  if (inputs.dryRun) {
-    env.RELEASE_PILOT_DRY_RUN = 'true'
-  }
+    if (inputs.dryRun) {
+      env.RELEASE_PILOT_DRY_RUN = 'true'
+    }
 
-  // Common args
-  const commonArgs: string[] = []
+    // Common args
+    const commonArgs: string[] = []
 
-  if (inputs.config) {
-    commonArgs.push('--config', inputs.config)
-  }
+    // Handle config: inline content takes precedence over file path
+    if (inputs.configContent) {
+      // Write inline YAML to a temporary file
+      tempConfigPath = path.join(os.tmpdir(), `release-config-${Date.now()}.yaml`)
+      fs.writeFileSync(tempConfigPath, inputs.configContent, 'utf8')
+      commonArgs.push('--config', tempConfigPath)
+      core.info(`Using inline configuration (written to ${tempConfigPath})`)
+    } else if (inputs.config) {
+      commonArgs.push('--config', inputs.config)
+      core.info(`Using configuration file: ${inputs.config}`)
+    } else {
+      core.info('No configuration file specified - using defaults with auto-detection')
+    }
 
-  if (inputs.dryRun) {
-    commonArgs.push('--dry-run')
-  }
+    if (inputs.dryRun) {
+      commonArgs.push('--dry-run')
+    }
 
-  // Execute command(s)
-  switch (inputs.command.toLowerCase()) {
-    case 'full': {
-      // Run complete workflow
-      await executeCommand(binaryPath, ['plan', ...commonArgs], env, inputs.workingDirectory)
-      await executeCommand(binaryPath, ['bump', ...commonArgs], env, inputs.workingDirectory)
-      await executeCommand(binaryPath, ['notes', ...commonArgs], env, inputs.workingDirectory)
+    // Execute command(s)
+    switch (inputs.command.toLowerCase()) {
+      case 'full': {
+        // Run complete workflow
+        await executeCommand(binaryPath, ['plan', ...commonArgs], env, inputs.workingDirectory)
+        await executeCommand(binaryPath, ['bump', ...commonArgs], env, inputs.workingDirectory)
+        await executeCommand(binaryPath, ['notes', ...commonArgs], env, inputs.workingDirectory)
 
-      if (inputs.autoApprove) {
-        await executeCommand(
+        if (inputs.autoApprove) {
+          await executeCommand(
+            binaryPath,
+            ['approve', '--yes', ...commonArgs],
+            env,
+            inputs.workingDirectory
+          )
+        } else {
+          await executeCommand(binaryPath, ['approve', ...commonArgs], env, inputs.workingDirectory)
+        }
+
+        const publishOutput = await executeCommand(
           binaryPath,
-          ['approve', '--yes', ...commonArgs],
+          ['publish', ...commonArgs],
           env,
           inputs.workingDirectory
         )
-      } else {
-        await executeCommand(binaryPath, ['approve', ...commonArgs], env, inputs.workingDirectory)
+
+        // Parse outputs from publish command
+        parsePublishOutput(publishOutput, outputs)
+        break
       }
 
-      const publishOutput = await executeCommand(
-        binaryPath,
-        ['publish', ...commonArgs],
-        env,
-        inputs.workingDirectory
-      )
+      case 'plan':
+      case 'bump':
+      case 'notes':
+      case 'publish': {
+        const cmdOutput = await executeCommand(
+          binaryPath,
+          [inputs.command, ...commonArgs],
+          env,
+          inputs.workingDirectory
+        )
 
-      // Parse outputs from publish command
-      parsePublishOutput(publishOutput, outputs)
-      break
-    }
-
-    case 'plan':
-    case 'bump':
-    case 'notes':
-    case 'publish': {
-      const cmdOutput = await executeCommand(
-        binaryPath,
-        [inputs.command, ...commonArgs],
-        env,
-        inputs.workingDirectory
-      )
-
-      if (inputs.command === 'publish') {
-        parsePublishOutput(cmdOutput, outputs)
+        if (inputs.command === 'publish') {
+          parsePublishOutput(cmdOutput, outputs)
+        }
+        break
       }
-      break
-    }
 
-    case 'approve': {
-      const approveArgs = [...commonArgs]
-      if (inputs.autoApprove) {
-        approveArgs.unshift('--yes')
+      case 'approve': {
+        const approveArgs = [...commonArgs]
+        if (inputs.autoApprove) {
+          approveArgs.unshift('--yes')
+        }
+        await executeCommand(binaryPath, ['approve', ...approveArgs], env, inputs.workingDirectory)
+        break
       }
-      await executeCommand(binaryPath, ['approve', ...approveArgs], env, inputs.workingDirectory)
-      break
+
+      default: {
+        // Custom command - pass through as-is
+        const customArgs = inputs.command.split(' ')
+        await executeCommand(binaryPath, [...customArgs, ...commonArgs], env, inputs.workingDirectory)
+        break
+      }
     }
 
-    default: {
-      // Custom command - pass through as-is
-      const customArgs = inputs.command.split(' ')
-      await executeCommand(binaryPath, [...customArgs, ...commonArgs], env, inputs.workingDirectory)
-      break
+    return outputs
+  } finally {
+    // Clean up temporary config file if created
+    if (tempConfigPath && fs.existsSync(tempConfigPath)) {
+      try {
+        fs.unlinkSync(tempConfigPath)
+        core.debug(`Cleaned up temporary config file: ${tempConfigPath}`)
+      } catch (error) {
+        core.warning(`Failed to clean up temporary config file: ${error}`)
+      }
     }
   }
-
-  return outputs
 }
 
 async function executeCommand(
