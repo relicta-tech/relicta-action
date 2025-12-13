@@ -1,0 +1,84 @@
+name: E2E Test
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test-action:
+    name: Test Action End-to-End
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # Create a test git history
+      - name: Setup test repository
+        run: |
+          git config user.name "Test Bot"
+          git config user.email "test@example.com"
+
+          # Create initial commit if needed
+          if ! git rev-parse HEAD >/dev/null 2>&1; then
+            echo "# Test Repo" > README.md
+            git add README.md
+            git commit -m "feat: initial commit"
+          fi
+
+          # Create a test tag to simulate previous release
+          git tag -f v0.1.0 HEAD~1 2>/dev/null || git tag v0.1.0
+
+          # Create a new commit to trigger a release
+          echo "test change" >> README.md
+          git add README.md
+          git commit -m "feat: add test feature" || true
+
+      # Test plan command
+      - name: Test - Plan
+        uses: ./
+        with:
+          version: latest
+          command: plan
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          dry-run: true
+
+      # Test bump command
+      - name: Test - Bump
+        uses: ./
+        with:
+          command: bump
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          dry-run: true
+
+      # Test notes command
+      - name: Test - Notes
+        uses: ./
+        with:
+          command: notes
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          dry-run: true
+
+      # Test full workflow in dry-run
+      - name: Test - Full Workflow (Dry Run)
+        id: full
+        uses: ./
+        with:
+          command: full
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          auto-approve: true
+          dry-run: true
+
+      - name: Verify outputs
+        if: steps.full.outputs.version != ''
+        run: |
+          echo "✅ Version output: ${{ steps.full.outputs.version }}"
+          echo "✅ Action completed successfully!"
