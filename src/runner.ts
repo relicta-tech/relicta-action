@@ -104,7 +104,12 @@ export async function runReleasePilot(
       default: {
         // Custom command - pass through as-is
         const customArgs = inputs.command.split(' ')
-        await executeCommand(binaryPath, [...customArgs, ...commonArgs], env, inputs.workingDirectory)
+        await executeCommand(
+          binaryPath,
+          [...customArgs, ...commonArgs],
+          env,
+          inputs.workingDirectory
+        )
         break
       }
     }
