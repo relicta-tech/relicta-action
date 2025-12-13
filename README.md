@@ -5,43 +5,61 @@
 
 Official GitHub Action for [ReleasePilot](https://github.com/felixgeelhaar/release-pilot) - AI-powered release management for modern software teams.
 
+## ✨ Zero Setup Required
+
+**No Go, Make, or build tools needed!** Just add the action to your workflow and you're done. The action automatically:
+- Downloads the correct ReleasePilot binary for your platform
+- Verifies checksums for security
+- Caches binaries for fast subsequent runs
+- Handles all the complexity behind the scenes
+
 ## Features
 
 - 🚀 **Automated Releases**: Complete release workflow in one step
-- 📦 **Smart Binary Installation**: Automatically downloads and caches the correct binary
-- 🔒 **Checksum Verification**: Ensures binary integrity  
+- 📦 **Zero Dependencies**: No local tools or setup required
+- 🔒 **Checksum Verification**: Ensures binary integrity
 - ⚡ **Fast**: Caches binaries for subsequent runs
 - 🎯 **Flexible Commands**: Run full workflow or individual steps
 - 🌍 **Cross-Platform**: Supports Linux, macOS, and Windows runners
 
 ## Usage
 
-### Quick Start - Full Release Workflow
+### 🎯 Quick Start - 2 Lines of Code
+
+Add this to your workflow - that's it! No other setup needed:
 
 ```yaml
 name: Release
 
 on:
   push:
-    tags:
-      - 'v*'
+    branches:
+      - main
 
 jobs:
   release:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
+      # That's all you need! 👇
       - uses: felixgeelhaar/release-pilot-action@v1
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
 ```
 
-This runs the complete release workflow: `plan → bump → notes → approve → publish`
+**What this does automatically:**
+1. 📥 Downloads ReleasePilot binary (no Go/Make needed!)
+2. 📊 Analyzes commits since last release
+3. 🔢 Bumps version based on conventional commits
+4. 📝 Generates changelog and release notes
+5. ✅ Creates GitHub release with assets
+6. 🎉 Done!
 
 ### Individual Commands
 
