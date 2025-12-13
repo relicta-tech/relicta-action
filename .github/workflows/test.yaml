@@ -41,9 +41,10 @@ jobs:
 
       - name: Check dist is up to date
         run: |
-          if [ -n "$(git status --porcelain dist/)" ]; then
+          # Exclude .d.ts.map files as they contain absolute paths that differ between environments
+          if [ -n "$(git status --porcelain dist/ | grep -v '\.d\.ts\.map')" ]; then
             echo "Error: dist/ directory is out of date. Run 'npm run build' and commit the changes."
-            git diff dist/
+            git diff dist/ -- ':!*.d.ts.map'
             exit 1
           fi
         shell: bash
