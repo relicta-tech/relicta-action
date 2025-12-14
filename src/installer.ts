@@ -5,7 +5,7 @@ import * as path from 'path'
 import * as fs from 'fs'
 import {Platform, DownloadInfo} from './types'
 
-const REPO_OWNER = 'felixgeelhaar'
+const REPO_OWNER = 'relicta-tech'
 const REPO_NAME = 'relicta'
 
 export async function installRelicta(version: string): Promise<string> {

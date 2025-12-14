@@ -28241,7 +28241,7 @@ const tc = __importStar(__nccwpck_require__(3472));
 const exec = __importStar(__nccwpck_require__(5236));
 const path = __importStar(__nccwpck_require__(6928));
 const fs = __importStar(__nccwpck_require__(9896));
-const REPO_OWNER = 'felixgeelhaar';
+const REPO_OWNER = 'relicta-tech';
 const REPO_NAME = 'relicta';
 async function installRelicta(version) {
     core.info(`Installing relicta ${version}...`);
