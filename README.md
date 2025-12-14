@@ -1,14 +1,14 @@
-# ReleasePilot GitHub Action
+# Relicta GitHub Action
 
-![GitHub release (latest by date)](https://img.shields.io/github/v/release/felixgeelhaar/release-pilot-action)
-![GitHub](https://img.shields.io/github/license/felixgeelhaar/release-pilot-action)
+![GitHub release (latest by date)](https://img.shields.io/github/v/release/relicta-tech/relicta-action)
+![GitHub](https://img.shields.io/github/license/relicta-tech/relicta-action)
 
-Official GitHub Action for [ReleasePilot](https://github.com/felixgeelhaar/release-pilot) - AI-powered release management for modern software teams.
+Official GitHub Action for [Relicta](https://github.com/relicta-tech/relicta) - AI-powered release management for modern software teams.
 
 ## ✨ Zero Setup Required
 
 **No Go, Make, or build tools needed!** Just add the action to your workflow and you're done. The action automatically:
-- Downloads the correct ReleasePilot binary for your platform
+- Downloads the correct Relicta binary for your platform
 - Verifies checksums for security
 - Caches binaries for fast subsequent runs
 - Handles all the complexity behind the scenes
@@ -48,13 +48,13 @@ jobs:
           fetch-depth: 0
 
       # That's all you need! 👇
-      - uses: felixgeelhaar/release-pilot-action@v1
+      - uses: relicta-tech/relicta-action@v1
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
 ```
 
 **What this does automatically:**
-1. 📥 Downloads ReleasePilot binary (no Go/Make needed!)
+1. 📥 Downloads Relicta binary (no Go/Make needed!)
 2. 📊 Analyzes commits since last release
 3. 🔢 Bumps version based on conventional commits
 4. 📝 Generates changelog and release notes
@@ -66,7 +66,7 @@ jobs:
 **Want AI-generated release notes? Just add your API key as a secret:**
 
 ```yaml
-- uses: felixgeelhaar/release-pilot-action@v1
+- uses: relicta-tech/relicta-action@v1
   with:
     github-token: ${{ secrets.GITHUB_TOKEN }}
   env:
@@ -76,7 +76,7 @@ jobs:
     # GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}       # Google Gemini (gemini-2.0-flash-exp)
 ```
 
-**That's it!** No config file needed. ReleasePilot automatically:
+**That's it!** No config file needed. Relicta automatically:
 - ✅ Detects your API key from environment
 - ✅ Enables AI with sensible defaults
 - ✅ Generates professional release notes
@@ -115,7 +115,7 @@ ai:
 - **Azure OpenAI** (AZURE_OPENAI_KEY + AZURE_OPENAI_ENDPOINT) - Enterprise-ready
 - **Ollama** (OLLAMA_HOST) - Free, runs locally
 
-**Multiple API Keys?** If you have multiple AI provider keys configured, ReleasePilot will:
+**Multiple API Keys?** If you have multiple AI provider keys configured, Relicta will:
 1. ⚠️ Show a warning about detected keys
 2. Auto-select based on priority: OpenAI → Anthropic → Gemini → Azure → Ollama
 3. Allow override via `RELEASE_PILOT_AI_PROVIDER` env var or config file
@@ -125,7 +125,7 @@ ai:
 **Want everything in your workflow file?** Use `config-content` for inline YAML:
 
 ```yaml
-- uses: felixgeelhaar/release-pilot-action@v1
+- uses: relicta-tech/relicta-action@v1
   with:
     github-token: ${{ secrets.GITHUB_TOKEN }}
     config-content: |
@@ -178,25 +178,25 @@ Run specific commands instead of the full workflow:
 
 ```yaml
 - name: Plan release
-  uses: felixgeelhaar/release-pilot-action@v1
+  uses: relicta-tech/relicta-action@v1
   with:
     command: plan
     github-token: ${{ secrets.GITHUB_TOKEN }}
 
 - name: Bump version
-  uses: felixgeelhaar/release-pilot-action@v1
+  uses: relicta-tech/relicta-action@v1
   with:
     command: bump
     github-token: ${{ secrets.GITHUB_TOKEN }}
 
 - name: Generate notes
-  uses: felixgeelhaar/release-pilot-action@v1
+  uses: relicta-tech/relicta-action@v1
   with:
     command: notes
     github-token: ${{ secrets.GITHUB_TOKEN }}
 
 - name: Approve and publish
-  uses: felixgeelhaar/release-pilot-action@v1
+  uses: relicta-tech/relicta-action@v1
   id: release
   with:
     command: publish
@@ -211,9 +211,9 @@ Run specific commands instead of the full workflow:
 ### Advanced Configuration
 
 ```yaml
-- uses: felixgeelhaar/release-pilot-action@v1
+- uses: relicta-tech/relicta-action@v1
   with:
-    # Version of release-pilot to use
+    # Version of relicta to use
     version: v1.3.0  # or 'latest' (default)
     
     # Command to run
@@ -269,7 +269,7 @@ jobs:
           name: dist
           path: dist/
       
-      - uses: felixgeelhaar/release-pilot-action@v1
+      - uses: relicta-tech/relicta-action@v1
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
 ```
@@ -280,7 +280,7 @@ Require manual approval before publishing:
 
 ```yaml
 - name: Plan and prepare release
-  uses: felixgeelhaar/release-pilot-action@v1
+  uses: relicta-tech/relicta-action@v1
   with:
     command: notes
     github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -291,7 +291,7 @@ Require manual approval before publishing:
     approvers: team-leads
     
 - name: Publish release
-  uses: felixgeelhaar/release-pilot-action@v1
+  uses: relicta-tech/relicta-action@v1
   with:
     command: publish
     auto-approve: true
@@ -302,7 +302,7 @@ Require manual approval before publishing:
 
 | Input | Description | Required | Default |
 |-------|-------------|----------|---------|
-| `version` | Version of release-pilot to use (e.g., `v1.3.0` or `latest`) | No | `latest` |
+| `version` | Version of relicta to use (e.g., `v1.3.0` or `latest`) | No | `latest` |
 | `command` | Command to run: `full`, `plan`, `bump`, `notes`, `approve`, `publish` | No | `full` |
 | `github-token` | GitHub token for creating releases | Yes | `${{ github.token }}` |
 | `config` | Path to release config file | No | - |
@@ -327,7 +327,7 @@ Require manual approval before publishing:
 ### Use Outputs in Subsequent Steps
 
 ```yaml
-- uses: felixgeelhaar/release-pilot-action@v1
+- uses: relicta-tech/relicta-action@v1
   id: release
   with:
     github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -341,16 +341,16 @@ Require manual approval before publishing:
 ### Pin to Specific Version
 
 ```yaml
-- uses: felixgeelhaar/release-pilot-action@v1
+- uses: relicta-tech/relicta-action@v1
   with:
-    version: v1.2.4  # Pin to specific release-pilot version
+    version: v1.2.4  # Pin to specific relicta version
     github-token: ${{ secrets.GITHUB_TOKEN }}
 ```
 
 ### Dry Run for Testing
 
 ```yaml
-- uses: felixgeelhaar/release-pilot-action@v1
+- uses: relicta-tech/relicta-action@v1
   with:
     dry-run: true
     github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -365,7 +365,7 @@ Require manual approval before publishing:
 
 ## Configuration Validation
 
-ReleasePilot validates your configuration and provides helpful feedback:
+Relicta validates your configuration and provides helpful feedback:
 
 ### ❌ **Errors** (Fatal - Action Will Fail)
 - Invalid AI provider (must be: openai, anthropic, gemini, azure-openai, ollama)
@@ -390,7 +390,7 @@ ReleasePilot validates your configuration and provides helpful feedback:
 
 ## Configuration
 
-**Zero config required!** ReleasePilot works out of the box with sensible defaults.
+**Zero config required!** Relicta works out of the box with sensible defaults.
 
 ### Three Ways to Configure
 
@@ -453,7 +453,7 @@ ReleasePilot validates your configuration and provides helpful feedback:
 
 ### Example Configuration
 
-For advanced customization, use `config-content` or create a `release.config.yaml` file. See the [ReleasePilot documentation](https://github.com/felixgeelhaar/release-pilot) for full options.
+For advanced customization, use `config-content` or create a `release.config.yaml` file. See the [Relicta documentation](https://github.com/relicta-tech/relicta) for full options.
 
 Example minimal config:
 
@@ -491,11 +491,11 @@ MIT License - see [LICENSE](LICENSE) for details
 
 ## Related
 
-- [ReleasePilot CLI](https://github.com/felixgeelhaar/release-pilot) - The main CLI tool
-- [Documentation](https://github.com/felixgeelhaar/release-pilot#readme) - Full documentation
+- [Relicta CLI](https://github.com/relicta-tech/relicta) - The main CLI tool
+- [Documentation](https://github.com/relicta-tech/relicta#readme) - Full documentation
 
 ## Support
 
-- 🐛 [Report a bug](https://github.com/felixgeelhaar/release-pilot-action/issues)
-- 💡 [Request a feature](https://github.com/felixgeelhaar/release-pilot-action/issues)
-- 📖 [Documentation](https://github.com/felixgeelhaar/release-pilot#readme)
+- 🐛 [Report a bug](https://github.com/relicta-tech/relicta-action/issues)
+- 💡 [Request a feature](https://github.com/relicta-tech/relicta-action/issues)
+- 📖 [Documentation](https://github.com/relicta-tech/relicta#readme)

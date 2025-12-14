@@ -1,4 +1,4 @@
-name: 'ReleasePilot'
+name: 'Relicta'
 description: 'AI-powered release management for modern software teams'
 author: 'Felix Geelhaar'
 
@@ -8,7 +8,7 @@ branding:
 
 inputs:
   version:
-    description: 'Version of release-pilot to use (e.g., v1.3.0 or latest)'
+    description: 'Version of relicta to use (e.g., v1.3.0 or latest)'
     required: false
     default: 'latest'
   
@@ -40,7 +40,7 @@ inputs:
     default: 'false'
   
   working-directory:
-    description: 'Working directory for release-pilot commands'
+    description: 'Working directory for relicta commands'
     required: false
     default: '.'
 

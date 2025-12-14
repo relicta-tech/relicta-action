@@ -67,5 +67,5 @@ jobs:
 
       - name: Verify binary installation
         run: |
-          echo "✅ release-pilot binary installed and executed successfully!"
+          echo "✅ relicta binary installed and executed successfully!"
           echo "✅ Plan and bump commands work correctly"

@@ -1,7 +1,7 @@
 {
-  "name": "release-pilot-action",
+  "name": "relicta-action",
   "version": "1.0.0",
-  "description": "GitHub Action for ReleasePilot - AI-powered release management",
+  "description": "GitHub Action for Relicta - AI-powered release management",
   "main": "dist/index.js",
   "scripts": {
     "build": "ncc build src/main.ts -o dist --source-map --license licenses.txt",
@@ -14,7 +14,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/felixgeelhaar/release-pilot-action.git"
+    "url": "git+https://github.com/relicta-tech/relicta-action.git"
   },
   "keywords": [
     "actions",

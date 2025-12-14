@@ -1,8 +1,8 @@
 # Example: Complete Release Workflow
-# This workflow demonstrates how simple it is to use ReleasePilot
+# This workflow demonstrates how simple it is to use Relicta
 # No Go, Make, or build tools required!
 #
-# For your own projects, use: felixgeelhaar/release-pilot-action@v1
+# For your own projects, use: relicta-tech/relicta-action@v1
 
 name: Example Release
 
@@ -49,7 +49,7 @@ jobs:
           fi
 
       # Use local action for testing (use @v1 in your own workflows)
-      - name: Release with ReleasePilot
+      - name: Release with Relicta
         id: release
         uses: ./
         with:

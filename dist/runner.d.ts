@@ -1,2 +1,2 @@
 import { ActionInputs, ActionOutputs } from './types';
-export declare function runReleasePilot(binaryPath: string, inputs: ActionInputs): Promise<ActionOutputs>;
+export declare function runRelicta(binaryPath: string, inputs: ActionInputs): Promise<ActionOutputs>;

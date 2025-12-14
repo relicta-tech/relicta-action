@@ -5,7 +5,7 @@ import * as path from 'path'
 import * as os from 'os'
 import {ActionInputs, ActionOutputs} from './types'
 
-export async function runReleasePilot(
+export async function runRelicta(
   binaryPath: string,
   inputs: ActionInputs
 ): Promise<ActionOutputs> {
@@ -20,7 +20,7 @@ export async function runReleasePilot(
     }
 
     if (inputs.dryRun) {
-      env.RELEASE_PILOT_DRY_RUN = 'true'
+      env.RELICTA_DRY_RUN = 'true'
     }
 
     // Common args
@@ -153,7 +153,7 @@ async function executeCommand(
     }
   }
 
-  core.startGroup(`Running: release-pilot ${args.join(' ')}`)
+  core.startGroup(`Running: relicta ${args.join(' ')}`)
 
   try {
     const exitCode = await exec.exec(binaryPath, args, options)
@@ -172,7 +172,7 @@ async function executeCommand(
 
 function parsePublishOutput(output: string, outputs: ActionOutputs): void {
   // Parse output for version, release URL, tag name, etc.
-  // ReleasePilot outputs structured information that we can parse
+  // Relicta outputs structured information that we can parse
 
   // Look for patterns like:
   // - "Created release v1.3.0"

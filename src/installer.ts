@@ -6,17 +6,17 @@ import * as fs from 'fs'
 import {Platform, DownloadInfo} from './types'
 
 const REPO_OWNER = 'felixgeelhaar'
-const REPO_NAME = 'release-pilot'
+const REPO_NAME = 'relicta'
 
-export async function installReleasePilot(version: string): Promise<string> {
-  core.info(`Installing release-pilot ${version}...`)
+export async function installRelicta(version: string): Promise<string> {
+  core.info(`Installing relicta ${version}...`)
 
   // Check cache first
-  const cachedPath = tc.find('release-pilot', version)
+  const cachedPath = tc.find('relicta', version)
   if (cachedPath) {
-    core.info(`Found cached release-pilot at ${cachedPath}`)
+    core.info(`Found cached relicta at ${cachedPath}`)
     const platform = detectPlatform()
-    const binaryName = platform.os === 'Windows' ? 'release-pilot.exe' : 'release-pilot'
+    const binaryName = platform.os === 'Windows' ? 'relicta.exe' : 'relicta'
     const cachedBinary = findBinary(cachedPath, binaryName)
     if (cachedBinary) {
       return cachedBinary
@@ -52,7 +52,7 @@ export async function installReleasePilot(version: string): Promise<string> {
   core.info(`Extracted to: ${extractedPath}`)
 
   // Find binary in extracted directory
-  const binaryName = platform.os === 'Windows' ? 'release-pilot.exe' : 'release-pilot'
+  const binaryName = platform.os === 'Windows' ? 'relicta.exe' : 'relicta'
   const binaryPath = findBinary(extractedPath, binaryName)
 
   if (!binaryPath) {
@@ -67,8 +67,8 @@ export async function installReleasePilot(version: string): Promise<string> {
   }
 
   // Cache for future runs
-  const cachedDir = await tc.cacheDir(extractedPath, 'release-pilot', version)
-  core.info(`Cached release-pilot to: ${cachedDir}`)
+  const cachedDir = await tc.cacheDir(extractedPath, 'relicta', version)
+  core.info(`Cached relicta to: ${cachedDir}`)
 
   return binaryPath
 }
@@ -105,7 +105,7 @@ function detectPlatform(): Platform {
 
 function getDownloadInfo(version: string, platform: Platform): DownloadInfo {
   const ext = platform.os === 'Windows' ? 'zip' : 'tar.gz'
-  const filename = `release-pilot_${platform.os}_${platform.arch}.${ext}`
+  const filename = `relicta_${platform.os}_${platform.arch}.${ext}`
 
   let url: string
   if (version === 'latest') {
@@ -178,10 +178,10 @@ function findBinary(extractedPath: string, binaryName: string): string | null {
     return rootPath
   }
 
-  // Search in subdirectories (archive may contain a folder like release-pilot_Linux_x86_64/)
+  // Search in subdirectories (archive may contain a folder like relicta_Linux_x86_64/)
   const entries = fs.readdirSync(extractedPath, {withFileTypes: true})
   for (const entry of entries) {
-    if (entry.isDirectory() && entry.name.startsWith('release-pilot')) {
+    if (entry.isDirectory() && entry.name.startsWith('relicta')) {
       const subPath = path.join(extractedPath, entry.name, binaryName)
       if (fs.existsSync(subPath)) {
         return subPath

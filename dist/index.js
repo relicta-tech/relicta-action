@@ -28235,22 +28235,22 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.installReleasePilot = installReleasePilot;
+exports.installRelicta = installRelicta;
 const core = __importStar(__nccwpck_require__(7484));
 const tc = __importStar(__nccwpck_require__(3472));
 const exec = __importStar(__nccwpck_require__(5236));
 const path = __importStar(__nccwpck_require__(6928));
 const fs = __importStar(__nccwpck_require__(9896));
 const REPO_OWNER = 'felixgeelhaar';
-const REPO_NAME = 'release-pilot';
-async function installReleasePilot(version) {
-    core.info(`Installing release-pilot ${version}...`);
+const REPO_NAME = 'relicta';
+async function installRelicta(version) {
+    core.info(`Installing relicta ${version}...`);
     // Check cache first
-    const cachedPath = tc.find('release-pilot', version);
+    const cachedPath = tc.find('relicta', version);
     if (cachedPath) {
-        core.info(`Found cached release-pilot at ${cachedPath}`);
+        core.info(`Found cached relicta at ${cachedPath}`);
         const platform = detectPlatform();
-        const binaryName = platform.os === 'Windows' ? 'release-pilot.exe' : 'release-pilot';
+        const binaryName = platform.os === 'Windows' ? 'relicta.exe' : 'relicta';
         const cachedBinary = findBinary(cachedPath, binaryName);
         if (cachedBinary) {
             return cachedBinary;
@@ -28281,7 +28281,7 @@ async function installReleasePilot(version) {
     }
     core.info(`Extracted to: ${extractedPath}`);
     // Find binary in extracted directory
-    const binaryName = platform.os === 'Windows' ? 'release-pilot.exe' : 'release-pilot';
+    const binaryName = platform.os === 'Windows' ? 'relicta.exe' : 'relicta';
     const binaryPath = findBinary(extractedPath, binaryName);
     if (!binaryPath) {
         throw new Error(`Binary not found in ${extractedPath}`);
@@ -28292,8 +28292,8 @@ async function installReleasePilot(version) {
         await exec.exec('chmod', ['+x', binaryPath]);
     }
     // Cache for future runs
-    const cachedDir = await tc.cacheDir(extractedPath, 'release-pilot', version);
-    core.info(`Cached release-pilot to: ${cachedDir}`);
+    const cachedDir = await tc.cacheDir(extractedPath, 'relicta', version);
+    core.info(`Cached relicta to: ${cachedDir}`);
     return binaryPath;
 }
 function detectPlatform() {
@@ -28328,7 +28328,7 @@ function detectPlatform() {
 }
 function getDownloadInfo(version, platform) {
     const ext = platform.os === 'Windows' ? 'zip' : 'tar.gz';
-    const filename = `release-pilot_${platform.os}_${platform.arch}.${ext}`;
+    const filename = `relicta_${platform.os}_${platform.arch}.${ext}`;
     let url;
     if (version === 'latest') {
         url = `https://github.com/${REPO_OWNER}/${REPO_NAME}/releases/latest/download/${filename}`;
@@ -28385,10 +28385,10 @@ function findBinary(extractedPath, binaryName) {
     if (fs.existsSync(rootPath)) {
         return rootPath;
     }
-    // Search in subdirectories (archive may contain a folder like release-pilot_Linux_x86_64/)
+    // Search in subdirectories (archive may contain a folder like relicta_Linux_x86_64/)
     const entries = fs.readdirSync(extractedPath, { withFileTypes: true });
     for (const entry of entries) {
-        if (entry.isDirectory() && entry.name.startsWith('release-pilot')) {
+        if (entry.isDirectory() && entry.name.startsWith('relicta')) {
             const subPath = path.join(extractedPath, entry.name, binaryName);
             if (fs.existsSync(subPath)) {
                 return subPath;
@@ -28460,17 +28460,17 @@ async function run() {
         if (!inputs.githubToken) {
             throw new Error('GitHub token is required. Set github-token input or GITHUB_TOKEN environment variable');
         }
-        core.info('Starting ReleasePilot action...');
+        core.info('Starting Relicta action...');
         core.info(`Version: ${inputs.version}`);
         core.info(`Command: ${inputs.command}`);
         core.info(`Dry run: ${inputs.dryRun}`);
-        // Install release-pilot binary
-        const binaryPath = await (0, installer_1.installReleasePilot)(inputs.version);
-        core.info(`✓ release-pilot installed at: ${binaryPath}`);
+        // Install relicta binary
+        const binaryPath = await (0, installer_1.installRelicta)(inputs.version);
+        core.info(`✓ relicta installed at: ${binaryPath}`);
         // Add binary to PATH
         core.addPath(binaryPath.replace(/\/[^/]+$/, ''));
-        // Run release-pilot
-        const outputs = await (0, runner_1.runReleasePilot)(binaryPath, inputs);
+        // Run relicta
+        const outputs = await (0, runner_1.runRelicta)(binaryPath, inputs);
         // Set outputs
         if (outputs.version) {
             core.setOutput('version', outputs.version);
@@ -28488,7 +28488,7 @@ async function run() {
             core.setOutput('release-id', outputs.releaseId);
             core.info(`Release ID: ${outputs.releaseId}`);
         }
-        core.info('✓ ReleasePilot action completed successfully');
+        core.info('✓ Relicta action completed successfully');
     }
     catch (error) {
         if (error instanceof Error) {
@@ -28543,13 +28543,13 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.runReleasePilot = runReleasePilot;
+exports.runRelicta = runRelicta;
 const core = __importStar(__nccwpck_require__(7484));
 const exec = __importStar(__nccwpck_require__(5236));
 const fs = __importStar(__nccwpck_require__(9896));
 const path = __importStar(__nccwpck_require__(6928));
 const os = __importStar(__nccwpck_require__(857));
-async function runReleasePilot(binaryPath, inputs) {
+async function runRelicta(binaryPath, inputs) {
     const outputs = {};
     let tempConfigPath = null;
     try {
@@ -28559,7 +28559,7 @@ async function runReleasePilot(binaryPath, inputs) {
             GITHUB_TOKEN: inputs.githubToken
         };
         if (inputs.dryRun) {
-            env.RELEASE_PILOT_DRY_RUN = 'true';
+            env.RELICTA_DRY_RUN = 'true';
         }
         // Common args
         const commonArgs = [];
@@ -28657,7 +28657,7 @@ async function executeCommand(binaryPath, args, env, cwd) {
             }
         }
     };
-    core.startGroup(`Running: release-pilot ${args.join(' ')}`);
+    core.startGroup(`Running: relicta ${args.join(' ')}`);
     try {
         const exitCode = await exec.exec(binaryPath, args, options);
         if (exitCode !== 0) {
@@ -28673,7 +28673,7 @@ async function executeCommand(binaryPath, args, env, cwd) {
 }
 function parsePublishOutput(output, outputs) {
     // Parse output for version, release URL, tag name, etc.
-    // ReleasePilot outputs structured information that we can parse
+    // Relicta outputs structured information that we can parse
     // Look for patterns like:
     // - "Created release v1.3.0"
     // - "Release URL: https://github.com/..."

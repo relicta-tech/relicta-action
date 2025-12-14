@@ -1,1 +1,1 @@
-export declare function installReleasePilot(version: string): Promise<string>;
+export declare function installRelicta(version: string): Promise<string>;

@@ -1,7 +1,7 @@
 import * as core from '@actions/core'
 import {ActionInputs} from './types'
-import {installReleasePilot} from './installer'
-import {runReleasePilot} from './runner'
+import {installRelicta} from './installer'
+import {runRelicta} from './runner'
 
 async function run(): Promise<void> {
   try {
@@ -24,20 +24,20 @@ async function run(): Promise<void> {
       )
     }
 
-    core.info('Starting ReleasePilot action...')
+    core.info('Starting Relicta action...')
     core.info(`Version: ${inputs.version}`)
     core.info(`Command: ${inputs.command}`)
     core.info(`Dry run: ${inputs.dryRun}`)
 
-    // Install release-pilot binary
-    const binaryPath = await installReleasePilot(inputs.version)
-    core.info(`✓ release-pilot installed at: ${binaryPath}`)
+    // Install relicta binary
+    const binaryPath = await installRelicta(inputs.version)
+    core.info(`✓ relicta installed at: ${binaryPath}`)
 
     // Add binary to PATH
     core.addPath(binaryPath.replace(/\/[^/]+$/, ''))
 
-    // Run release-pilot
-    const outputs = await runReleasePilot(binaryPath, inputs)
+    // Run relicta
+    const outputs = await runRelicta(binaryPath, inputs)
 
     // Set outputs
     if (outputs.version) {
@@ -60,7 +60,7 @@ async function run(): Promise<void> {
       core.info(`Release ID: ${outputs.releaseId}`)
     }
 
-    core.info('✓ ReleasePilot action completed successfully')
+    core.info('✓ Relicta action completed successfully')
   } catch (error) {
     if (error instanceof Error) {
       core.setFailed(error.message)
