@@ -139,15 +139,16 @@ async function executeCommand(
   const options: exec.ExecOptions = {
     env,
     cwd,
+    silent: true, // Suppress default exec streaming to avoid duplicate output
     listeners: {
       stdout: (data: Buffer) => {
         const str = data.toString()
         output += str
-        core.info(str)
+        process.stdout.write(str) // Write directly without adding newlines
       },
       stderr: (data: Buffer) => {
         const str = data.toString()
-        core.warning(str)
+        process.stderr.write(str) // Write directly to stderr
       }
     }
   }

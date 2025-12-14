@@ -28644,15 +28644,16 @@ async function executeCommand(binaryPath, args, env, cwd) {
     const options = {
         env,
         cwd,
+        silent: true, // Suppress default exec streaming to avoid duplicate output
         listeners: {
             stdout: (data) => {
                 const str = data.toString();
                 output += str;
-                core.info(str);
+                process.stdout.write(str); // Write directly without adding newlines
             },
             stderr: (data) => {
                 const str = data.toString();
-                core.warning(str);
+                process.stderr.write(str); // Write directly to stderr
             }
         }
     };
