@@ -1,9 +1,19 @@
-# Relicta GitHub Action
+<div align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="brand/relicta-logo-dark.svg">
+    <source media="(prefers-color-scheme: light)" srcset="brand/relicta-logo-light.svg">
+    <img alt="Relicta" src="brand/relicta-logo-light.svg" width="280">
+  </picture>
 
-![GitHub release (latest by date)](https://img.shields.io/github/v/release/relicta-tech/relicta-action)
-![GitHub](https://img.shields.io/github/license/relicta-tech/relicta-action)
+  <h1>Relicta GitHub Action</h1>
 
-Official GitHub Action for [Relicta](https://github.com/relicta-tech/relicta) - AI-powered release management for modern software teams.
+  <p>Official GitHub Action for <a href="https://github.com/relicta-tech/relicta">Relicta</a> - AI-powered release management for modern software teams.</p>
+
+  <p>
+    <a href="https://github.com/relicta-tech/relicta-action/releases"><img src="https://img.shields.io/github/v/release/relicta-tech/relicta-action" alt="GitHub release"></a>
+    <a href="https://github.com/relicta-tech/relicta-action/blob/main/LICENSE"><img src="https://img.shields.io/github/license/relicta-tech/relicta-action" alt="License"></a>
+  </p>
+</div>
 
 ## ✨ Zero Setup Required
 
