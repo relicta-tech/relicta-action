@@ -51,7 +51,7 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           dry-run: true
 
-      # Test bump command
+      # Test bump command (standalone)
       - name: Test - Bump
         uses: ./
         with:
@@ -59,13 +59,8 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           dry-run: true
 
-      # Test notes command
-      - name: Test - Notes
-        uses: ./
-        with:
-          command: notes
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          dry-run: true
+      # Note: Individual notes/approve/publish commands require state from prior
+      # commands and are tested via the full workflow below
 
       # Test full workflow in dry-run
       - name: Test - Full Workflow (Dry Run)
