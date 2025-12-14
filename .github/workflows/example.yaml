@@ -1,13 +1,19 @@
 # Example: Complete Release Workflow
 # This workflow shows how simple it is to use ReleasePilot
 # No Go, Make, or build tools required!
+#
+# NOTE: This workflow is disabled (workflow_dispatch only) because it uses
+# the published @v1 action. Enable and test when releasing new action versions.
 
 name: Release
 
 on:
-  push:
-    branches:
-      - main
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Run in dry-run mode'
+        type: boolean
+        default: true
 
 permissions:
   contents: write
@@ -27,3 +33,4 @@ jobs:
         uses: felixgeelhaar/release-pilot-action@v1
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
+          dry-run: ${{ inputs.dry_run }}
