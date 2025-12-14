@@ -23,6 +23,7 @@ jobs:
 
       # Create a test git history
       - name: Setup test repository
+        shell: bash
         run: |
           git config user.name "Test Bot"
           git config user.email "test@example.com"
