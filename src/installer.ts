@@ -15,7 +15,13 @@ export async function installReleasePilot(version: string): Promise<string> {
   const cachedPath = tc.find('release-pilot', version)
   if (cachedPath) {
     core.info(`Found cached release-pilot at ${cachedPath}`)
-    return path.join(cachedPath, 'release-pilot')
+    const platform = detectPlatform()
+    const binaryName = platform.os === 'Windows' ? 'release-pilot.exe' : 'release-pilot'
+    const cachedBinary = findBinary(cachedPath, binaryName)
+    if (cachedBinary) {
+      return cachedBinary
+    }
+    core.warning('Cached binary not found, re-downloading...')
   }
 
   // Detect platform
@@ -47,11 +53,13 @@ export async function installReleasePilot(version: string): Promise<string> {
 
   // Find binary in extracted directory
   const binaryName = platform.os === 'Windows' ? 'release-pilot.exe' : 'release-pilot'
-  const binaryPath = path.join(extractedPath, binaryName)
+  const binaryPath = findBinary(extractedPath, binaryName)
 
-  if (!fs.existsSync(binaryPath)) {
-    throw new Error(`Binary not found at ${binaryPath}`)
+  if (!binaryPath) {
+    throw new Error(`Binary not found in ${extractedPath}`)
   }
+
+  core.info(`Found binary at: ${binaryPath}`)
 
   // Make binary executable (Unix)
   if (platform.os !== 'Windows') {
@@ -161,4 +169,25 @@ async function verifyChecksum(
     core.warning(`Failed to verify checksum: ${error}`)
     // Don't fail on checksum errors, just warn
   }
+}
+
+function findBinary(extractedPath: string, binaryName: string): string | null {
+  // Check root directory first
+  const rootPath = path.join(extractedPath, binaryName)
+  if (fs.existsSync(rootPath)) {
+    return rootPath
+  }
+
+  // Search in subdirectories (archive may contain a folder like release-pilot_Linux_x86_64/)
+  const entries = fs.readdirSync(extractedPath, {withFileTypes: true})
+  for (const entry of entries) {
+    if (entry.isDirectory() && entry.name.startsWith('release-pilot')) {
+      const subPath = path.join(extractedPath, entry.name, binaryName)
+      if (fs.existsSync(subPath)) {
+        return subPath
+      }
+    }
+  }
+
+  return null
 }
