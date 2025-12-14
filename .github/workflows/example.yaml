@@ -1,19 +1,27 @@
 # Example: Complete Release Workflow
-# This workflow shows how simple it is to use ReleasePilot
+# This workflow demonstrates how simple it is to use ReleasePilot
 # No Go, Make, or build tools required!
 #
-# NOTE: This workflow is disabled (workflow_dispatch only) because it uses
-# the published @v1 action. Enable and test when releasing new action versions.
+# For your own projects, use: felixgeelhaar/release-pilot-action@v1
 
-name: Release
+name: Example Release
 
 on:
   workflow_dispatch:
     inputs:
       dry_run:
-        description: 'Run in dry-run mode'
+        description: 'Run in dry-run mode (no actual release)'
         type: boolean
         default: true
+      command:
+        description: 'Command to run'
+        type: choice
+        options:
+          - full
+          - plan
+          - bump
+          - notes
+        default: plan
 
 permissions:
   contents: write
@@ -28,9 +36,35 @@ jobs:
         with:
           fetch-depth: 0
 
-      # That's it! Just use the action
+      # Create test git history for demo purposes
+      - name: Setup test commits
+        if: inputs.dry_run
+        run: |
+          git config user.name "Test Bot"
+          git config user.email "test@example.com"
+
+          # Create a test tag if none exists
+          if ! git describe --tags --abbrev=0 2>/dev/null; then
+            git tag v0.0.0 $(git rev-list --max-parents=0 HEAD)
+          fi
+
+      # Use local action for testing (use @v1 in your own workflows)
       - name: Release with ReleasePilot
-        uses: felixgeelhaar/release-pilot-action@v1
+        id: release
+        uses: ./
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
+          command: ${{ inputs.command }}
           dry-run: ${{ inputs.dry_run }}
+
+      - name: Show results
+        if: always()
+        run: |
+          echo "Command: ${{ inputs.command }}"
+          echo "Dry run: ${{ inputs.dry_run }}"
+          if [ -n "${{ steps.release.outputs.version }}" ]; then
+            echo "Version: ${{ steps.release.outputs.version }}"
+          fi
+          if [ -n "${{ steps.release.outputs.release-url }}" ]; then
+            echo "Release URL: ${{ steps.release.outputs.release-url }}"
+          fi
