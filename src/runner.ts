@@ -5,10 +5,7 @@ import * as path from 'path'
 import * as os from 'os'
 import {ActionInputs, ActionOutputs} from './types'
 
-export async function runRelicta(
-  binaryPath: string,
-  inputs: ActionInputs
-): Promise<ActionOutputs> {
+export async function runRelicta(binaryPath: string, inputs: ActionInputs): Promise<ActionOutputs> {
   const outputs: ActionOutputs = {}
   let tempConfigPath: string | null = null
 

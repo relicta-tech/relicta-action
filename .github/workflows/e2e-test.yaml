@@ -28,6 +28,9 @@ jobs:
           git config user.name "Test Bot"
           git config user.email "test@example.com"
 
+          # Remove existing version tags to prevent conflicts with test scenario
+          git tag -l 'v*' | xargs -r git tag -d 2>/dev/null || true
+
           # Create initial commit if needed
           if ! git rev-parse HEAD >/dev/null 2>&1; then
             echo "# Test Repo" > README.md
