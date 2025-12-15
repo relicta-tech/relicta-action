@@ -44,6 +44,11 @@ inputs:
     required: false
     default: '.'
 
+  plugins:
+    description: 'Comma-separated list of plugins to download (e.g., github,slack,discord). If not specified, no plugins are downloaded.'
+    required: false
+    default: ''
+
 outputs:
   version:
     description: 'The new version that was created or bumped to'

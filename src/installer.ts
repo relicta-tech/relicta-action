@@ -73,6 +73,112 @@ export async function installRelicta(version: string): Promise<string> {
   return binaryPath
 }
 
+/**
+ * Install specified plugins for the current platform.
+ * Plugins are downloaded from the same release as the main binary.
+ */
+export async function installPlugins(
+  version: string,
+  plugins: string[],
+  relictaBinaryPath: string
+): Promise<void> {
+  if (plugins.length === 0) {
+    return
+  }
+
+  core.info(`Installing plugins: ${plugins.join(', ')}`)
+
+  const platform = detectPlatform()
+  const pluginsDir = path.join(path.dirname(relictaBinaryPath), 'plugins')
+
+  // Create plugins directory
+  if (!fs.existsSync(pluginsDir)) {
+    fs.mkdirSync(pluginsDir, {recursive: true})
+  }
+
+  // Download checksums file once for verification
+  const checksumUrl = getChecksumUrl(version)
+  const checksums: Map<string, string> = new Map()
+  try {
+    const checksumsPath = await tc.downloadTool(checksumUrl)
+    const checksumsContent = fs.readFileSync(checksumsPath, 'utf-8')
+    for (const line of checksumsContent.split('\n')) {
+      const parts = line.trim().split(/\s+/)
+      if (parts.length >= 2) {
+        checksums.set(parts[1], parts[0])
+      }
+    }
+  } catch (error) {
+    core.warning(`Failed to download checksums: ${error}`)
+  }
+
+  // Download each plugin
+  for (const pluginName of plugins) {
+    try {
+      await downloadPlugin(version, pluginName, platform, pluginsDir, checksums)
+    } catch (error) {
+      core.warning(`Failed to install plugin ${pluginName}: ${error}`)
+    }
+  }
+
+  core.info(`✓ Plugins installed to: ${pluginsDir}`)
+}
+
+async function downloadPlugin(
+  version: string,
+  pluginName: string,
+  platform: Platform,
+  pluginsDir: string,
+  checksums: Map<string, string>
+): Promise<void> {
+  // Plugin binary naming: github_linux_x86_64, slack_darwin_aarch64, etc.
+  const osName = platform.os.toLowerCase()
+  const ext = platform.os === 'Windows' ? '.exe' : ''
+  const filename = `${pluginName}_${osName}_${platform.arch}${ext}`
+
+  const url = getPluginUrl(version, filename)
+  core.info(`  Downloading ${pluginName} from: ${url}`)
+
+  const downloadPath = await tc.downloadTool(url)
+
+  // Verify checksum if available
+  const expectedChecksum = checksums.get(filename)
+  if (expectedChecksum) {
+    const crypto = await import('crypto')
+    const fileBuffer = fs.readFileSync(downloadPath)
+    const actualChecksum = crypto.createHash('sha256').update(fileBuffer).digest('hex')
+    if (actualChecksum !== expectedChecksum) {
+      throw new Error(`Checksum mismatch for ${filename}`)
+    }
+    core.info(`  ✓ Checksum verified for ${pluginName}`)
+  }
+
+  // Move to plugins directory with relicta- prefix (required by plugin loader)
+  const targetPath = path.join(pluginsDir, `relicta-${pluginName}${ext}`)
+  fs.copyFileSync(downloadPath, targetPath)
+
+  // Make executable on Unix
+  if (platform.os !== 'Windows') {
+    await exec.exec('chmod', ['+x', targetPath])
+  }
+
+  core.info(`  ✓ Installed ${pluginName}`)
+}
+
+function getPluginUrl(version: string, filename: string): string {
+  if (version === 'latest') {
+    return `https://github.com/${REPO_OWNER}/${REPO_NAME}/releases/latest/download/${filename}`
+  }
+  return `https://github.com/${REPO_OWNER}/${REPO_NAME}/releases/download/${version}/${filename}`
+}
+
+function getChecksumUrl(version: string): string {
+  if (version === 'latest') {
+    return `https://github.com/${REPO_OWNER}/${REPO_NAME}/releases/latest/download/checksums.txt`
+  }
+  return `https://github.com/${REPO_OWNER}/${REPO_NAME}/releases/download/${version}/checksums.txt`
+}
+
 function detectPlatform(): Platform {
   const platformOs = process.platform
   const platformArch = process.arch

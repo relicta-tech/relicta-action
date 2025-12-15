@@ -28236,6 +28236,7 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.installRelicta = installRelicta;
+exports.installPlugins = installPlugins;
 const core = __importStar(__nccwpck_require__(7484));
 const tc = __importStar(__nccwpck_require__(3472));
 const exec = __importStar(__nccwpck_require__(5236));
@@ -28295,6 +28296,88 @@ async function installRelicta(version) {
     const cachedDir = await tc.cacheDir(extractedPath, 'relicta', version);
     core.info(`Cached relicta to: ${cachedDir}`);
     return binaryPath;
+}
+/**
+ * Install specified plugins for the current platform.
+ * Plugins are downloaded from the same release as the main binary.
+ */
+async function installPlugins(version, plugins, relictaBinaryPath) {
+    if (plugins.length === 0) {
+        return;
+    }
+    core.info(`Installing plugins: ${plugins.join(', ')}`);
+    const platform = detectPlatform();
+    const pluginsDir = path.join(path.dirname(relictaBinaryPath), 'plugins');
+    // Create plugins directory
+    if (!fs.existsSync(pluginsDir)) {
+        fs.mkdirSync(pluginsDir, { recursive: true });
+    }
+    // Download checksums file once for verification
+    const checksumUrl = getChecksumUrl(version);
+    const checksums = new Map();
+    try {
+        const checksumsPath = await tc.downloadTool(checksumUrl);
+        const checksumsContent = fs.readFileSync(checksumsPath, 'utf-8');
+        for (const line of checksumsContent.split('\n')) {
+            const parts = line.trim().split(/\s+/);
+            if (parts.length >= 2) {
+                checksums.set(parts[1], parts[0]);
+            }
+        }
+    }
+    catch (error) {
+        core.warning(`Failed to download checksums: ${error}`);
+    }
+    // Download each plugin
+    for (const pluginName of plugins) {
+        try {
+            await downloadPlugin(version, pluginName, platform, pluginsDir, checksums);
+        }
+        catch (error) {
+            core.warning(`Failed to install plugin ${pluginName}: ${error}`);
+        }
+    }
+    core.info(`✓ Plugins installed to: ${pluginsDir}`);
+}
+async function downloadPlugin(version, pluginName, platform, pluginsDir, checksums) {
+    // Plugin binary naming: github_linux_x86_64, slack_darwin_aarch64, etc.
+    const osName = platform.os.toLowerCase();
+    const ext = platform.os === 'Windows' ? '.exe' : '';
+    const filename = `${pluginName}_${osName}_${platform.arch}${ext}`;
+    const url = getPluginUrl(version, filename);
+    core.info(`  Downloading ${pluginName} from: ${url}`);
+    const downloadPath = await tc.downloadTool(url);
+    // Verify checksum if available
+    const expectedChecksum = checksums.get(filename);
+    if (expectedChecksum) {
+        const crypto = await Promise.resolve().then(() => __importStar(__nccwpck_require__(6982)));
+        const fileBuffer = fs.readFileSync(downloadPath);
+        const actualChecksum = crypto.createHash('sha256').update(fileBuffer).digest('hex');
+        if (actualChecksum !== expectedChecksum) {
+            throw new Error(`Checksum mismatch for ${filename}`);
+        }
+        core.info(`  ✓ Checksum verified for ${pluginName}`);
+    }
+    // Move to plugins directory with relicta- prefix (required by plugin loader)
+    const targetPath = path.join(pluginsDir, `relicta-${pluginName}${ext}`);
+    fs.copyFileSync(downloadPath, targetPath);
+    // Make executable on Unix
+    if (platform.os !== 'Windows') {
+        await exec.exec('chmod', ['+x', targetPath]);
+    }
+    core.info(`  ✓ Installed ${pluginName}`);
+}
+function getPluginUrl(version, filename) {
+    if (version === 'latest') {
+        return `https://github.com/${REPO_OWNER}/${REPO_NAME}/releases/latest/download/${filename}`;
+    }
+    return `https://github.com/${REPO_OWNER}/${REPO_NAME}/releases/download/${version}/${filename}`;
+}
+function getChecksumUrl(version) {
+    if (version === 'latest') {
+        return `https://github.com/${REPO_OWNER}/${REPO_NAME}/releases/latest/download/checksums.txt`;
+    }
+    return `https://github.com/${REPO_OWNER}/${REPO_NAME}/releases/download/${version}/checksums.txt`;
 }
 function detectPlatform() {
     const platformOs = process.platform;
@@ -28446,6 +28529,13 @@ const runner_1 = __nccwpck_require__(4813);
 async function run() {
     try {
         // Get inputs
+        const pluginsInput = core.getInput('plugins') || '';
+        const plugins = pluginsInput
+            ? pluginsInput
+                .split(',')
+                .map(p => p.trim())
+                .filter(p => p.length > 0)
+            : [];
         const inputs = {
             version: core.getInput('version') || 'latest',
             command: core.getInput('command') || 'full',
@@ -28454,7 +28544,8 @@ async function run() {
             configContent: core.getInput('config-content') || undefined,
             autoApprove: core.getBooleanInput('auto-approve'),
             dryRun: core.getBooleanInput('dry-run'),
-            workingDirectory: core.getInput('working-directory') || '.'
+            workingDirectory: core.getInput('working-directory') || '.',
+            plugins
         };
         // Validate inputs
         if (!inputs.githubToken) {
@@ -28464,9 +28555,16 @@ async function run() {
         core.info(`Version: ${inputs.version}`);
         core.info(`Command: ${inputs.command}`);
         core.info(`Dry run: ${inputs.dryRun}`);
+        if (inputs.plugins.length > 0) {
+            core.info(`Plugins: ${inputs.plugins.join(', ')}`);
+        }
         // Install relicta binary
         const binaryPath = await (0, installer_1.installRelicta)(inputs.version);
         core.info(`✓ relicta installed at: ${binaryPath}`);
+        // Install plugins if configured
+        if (inputs.plugins.length > 0) {
+            await (0, installer_1.installPlugins)(inputs.version, inputs.plugins, binaryPath);
+        }
         // Add binary to PATH
         core.addPath(binaryPath.replace(/\/[^/]+$/, ''));
         // Run relicta

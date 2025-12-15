@@ -1,11 +1,19 @@
 import * as core from '@actions/core'
 import {ActionInputs} from './types'
-import {installRelicta} from './installer'
+import {installRelicta, installPlugins} from './installer'
 import {runRelicta} from './runner'
 
 async function run(): Promise<void> {
   try {
     // Get inputs
+    const pluginsInput = core.getInput('plugins') || ''
+    const plugins = pluginsInput
+      ? pluginsInput
+          .split(',')
+          .map(p => p.trim())
+          .filter(p => p.length > 0)
+      : []
+
     const inputs: ActionInputs = {
       version: core.getInput('version') || 'latest',
       command: core.getInput('command') || 'full',
@@ -14,7 +22,8 @@ async function run(): Promise<void> {
       configContent: core.getInput('config-content') || undefined,
       autoApprove: core.getBooleanInput('auto-approve'),
       dryRun: core.getBooleanInput('dry-run'),
-      workingDirectory: core.getInput('working-directory') || '.'
+      workingDirectory: core.getInput('working-directory') || '.',
+      plugins
     }
 
     // Validate inputs
@@ -28,10 +37,18 @@ async function run(): Promise<void> {
     core.info(`Version: ${inputs.version}`)
     core.info(`Command: ${inputs.command}`)
     core.info(`Dry run: ${inputs.dryRun}`)
+    if (inputs.plugins.length > 0) {
+      core.info(`Plugins: ${inputs.plugins.join(', ')}`)
+    }
 
     // Install relicta binary
     const binaryPath = await installRelicta(inputs.version)
     core.info(`✓ relicta installed at: ${binaryPath}`)
+
+    // Install plugins if configured
+    if (inputs.plugins.length > 0) {
+      await installPlugins(inputs.version, inputs.plugins, binaryPath)
+    }
 
     // Add binary to PATH
     core.addPath(binaryPath.replace(/\/[^/]+$/, ''))

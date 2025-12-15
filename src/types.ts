@@ -7,6 +7,7 @@ export interface ActionInputs {
   autoApprove: boolean
   dryRun: boolean
   workingDirectory: string
+  plugins: string[]
 }
 
 export interface ActionOutputs {
