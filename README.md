@@ -58,7 +58,7 @@ jobs:
           fetch-depth: 0
 
       # That's all you need! 👇
-      - uses: relicta-tech/relicta-action@v1
+      - uses: relicta-tech/relicta-action@v2
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
 ```
@@ -76,7 +76,7 @@ jobs:
 **Want AI-generated release notes? Just add your API key as a secret:**
 
 ```yaml
-- uses: relicta-tech/relicta-action@v1
+- uses: relicta-tech/relicta-action@v2
   with:
     github-token: ${{ secrets.GITHUB_TOKEN }}
   env:
@@ -135,7 +135,7 @@ ai:
 **Want everything in your workflow file?** Use `config-content` for inline YAML:
 
 ```yaml
-- uses: relicta-tech/relicta-action@v1
+- uses: relicta-tech/relicta-action@v2
   with:
     github-token: ${{ secrets.GITHUB_TOKEN }}
     config-content: |
@@ -188,25 +188,25 @@ Run specific commands instead of the full workflow:
 
 ```yaml
 - name: Plan release
-  uses: relicta-tech/relicta-action@v1
+  uses: relicta-tech/relicta-action@v2
   with:
     command: plan
     github-token: ${{ secrets.GITHUB_TOKEN }}
 
 - name: Bump version
-  uses: relicta-tech/relicta-action@v1
+  uses: relicta-tech/relicta-action@v2
   with:
     command: bump
     github-token: ${{ secrets.GITHUB_TOKEN }}
 
 - name: Generate notes
-  uses: relicta-tech/relicta-action@v1
+  uses: relicta-tech/relicta-action@v2
   with:
     command: notes
     github-token: ${{ secrets.GITHUB_TOKEN }}
 
 - name: Approve and publish
-  uses: relicta-tech/relicta-action@v1
+  uses: relicta-tech/relicta-action@v2
   id: release
   with:
     command: publish
@@ -221,7 +221,7 @@ Run specific commands instead of the full workflow:
 ### Advanced Configuration
 
 ```yaml
-- uses: relicta-tech/relicta-action@v1
+- uses: relicta-tech/relicta-action@v2
   with:
     # Version of relicta to use
     version: v1.3.0  # or 'latest' (default)
@@ -279,7 +279,7 @@ jobs:
           name: dist
           path: dist/
       
-      - uses: relicta-tech/relicta-action@v1
+      - uses: relicta-tech/relicta-action@v2
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
 ```
@@ -290,7 +290,7 @@ Require manual approval before publishing:
 
 ```yaml
 - name: Plan and prepare release
-  uses: relicta-tech/relicta-action@v1
+  uses: relicta-tech/relicta-action@v2
   with:
     command: notes
     github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -301,7 +301,7 @@ Require manual approval before publishing:
     approvers: team-leads
     
 - name: Publish release
-  uses: relicta-tech/relicta-action@v1
+  uses: relicta-tech/relicta-action@v2
   with:
     command: publish
     auto-approve: true
@@ -320,8 +320,27 @@ Require manual approval before publishing:
 | `auto-approve` | Automatically approve releases | No | `true` |
 | `dry-run` | Run in dry-run mode | No | `false` |
 | `working-directory` | Working directory for commands | No | `.` |
+| `plugins` | Comma-separated list of plugins to download (e.g., `github,slack`) | No | - |
 
 **Note:** If both `config` and `config-content` are provided, `config-content` takes precedence.
+
+### Plugin Downloads
+
+By default, only the main Relicta binary is downloaded. If your configuration uses plugins (like `github` for creating releases or `slack` for notifications), you need to explicitly download them:
+
+```yaml
+- uses: relicta-tech/relicta-action@v2
+  with:
+    github-token: ${{ secrets.GITHUB_TOKEN }}
+    plugins: 'github'  # Download GitHub plugin for release creation
+```
+
+**Available plugins:** `github`, `gitlab`, `npm`, `slack`, `discord`, `jira`, `launchnotes`
+
+Multiple plugins can be specified:
+```yaml
+plugins: 'github,slack,discord'
+```
 
 ## Outputs
 
@@ -337,7 +356,7 @@ Require manual approval before publishing:
 ### Use Outputs in Subsequent Steps
 
 ```yaml
-- uses: relicta-tech/relicta-action@v1
+- uses: relicta-tech/relicta-action@v2
   id: release
   with:
     github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -351,7 +370,7 @@ Require manual approval before publishing:
 ### Pin to Specific Version
 
 ```yaml
-- uses: relicta-tech/relicta-action@v1
+- uses: relicta-tech/relicta-action@v2
   with:
     version: v1.2.4  # Pin to specific relicta version
     github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -360,7 +379,7 @@ Require manual approval before publishing:
 ### Dry Run for Testing
 
 ```yaml
-- uses: relicta-tech/relicta-action@v1
+- uses: relicta-tech/relicta-action@v2
   with:
     dry-run: true
     github-token: ${{ secrets.GITHUB_TOKEN }}
