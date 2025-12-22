@@ -43,6 +43,9 @@ jobs:
       - name: Build
         run: npm run build
 
+      - name: Format generated files
+        run: npm run format
+
       - name: Check dist is up to date
         run: |
           # Exclude .d.ts.map files as they contain absolute paths that differ between environments
