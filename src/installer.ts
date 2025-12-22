@@ -75,7 +75,7 @@ export async function installRelicta(version: string): Promise<string> {
 
 /**
  * Install specified plugins for the current platform.
- * Plugins are downloaded from the same release as the main binary.
+ * Each plugin is downloaded from its own repo: relicta-tech/plugin-{name}
  */
 export async function installPlugins(
   version: string,
@@ -96,26 +96,10 @@ export async function installPlugins(
     fs.mkdirSync(pluginsDir, {recursive: true})
   }
 
-  // Download checksums file once for verification
-  const checksumUrl = getChecksumUrl(version)
-  const checksums: Map<string, string> = new Map()
-  try {
-    const checksumsPath = await tc.downloadTool(checksumUrl)
-    const checksumsContent = fs.readFileSync(checksumsPath, 'utf-8')
-    for (const line of checksumsContent.split('\n')) {
-      const parts = line.trim().split(/\s+/)
-      if (parts.length >= 2) {
-        checksums.set(parts[1], parts[0])
-      }
-    }
-  } catch (error) {
-    core.warning(`Failed to download checksums: ${error}`)
-  }
-
-  // Download each plugin
+  // Download each plugin from its own repo
   for (const pluginName of plugins) {
     try {
-      await downloadPlugin(version, pluginName, platform, pluginsDir, checksums)
+      await downloadPlugin(version, pluginName, platform, pluginsDir)
     } catch (error) {
       core.warning(`Failed to install plugin ${pluginName}: ${error}`)
     }
@@ -128,31 +112,21 @@ async function downloadPlugin(
   version: string,
   pluginName: string,
   platform: Platform,
-  pluginsDir: string,
-  checksums: Map<string, string>
+  pluginsDir: string
 ): Promise<void> {
-  // Plugin archive naming: github_linux_x86_64.tar.gz, slack_darwin_aarch64.tar.gz, etc.
+  // Plugin archive naming: github_darwin_aarch64.tar.gz, slack_linux_x86_64.tar.gz, etc.
   const osName = platform.os.toLowerCase()
   const archiveExt = platform.os === 'Windows' ? '.zip' : '.tar.gz'
   const binaryExt = platform.os === 'Windows' ? '.exe' : ''
   const archiveFilename = `${pluginName}_${osName}_${platform.arch}${archiveExt}`
 
-  const url = getPluginUrl(version, archiveFilename)
+  const url = getPluginUrl(pluginName, version, archiveFilename)
   core.info(`  Downloading ${pluginName} from: ${url}`)
 
   const downloadPath = await tc.downloadTool(url)
 
-  // Verify checksum if available
-  const expectedChecksum = checksums.get(archiveFilename)
-  if (expectedChecksum) {
-    const crypto = await import('crypto')
-    const fileBuffer = fs.readFileSync(downloadPath)
-    const actualChecksum = crypto.createHash('sha256').update(fileBuffer).digest('hex')
-    if (actualChecksum !== expectedChecksum) {
-      throw new Error(`Checksum mismatch for ${archiveFilename}`)
-    }
-    core.info(`  ✓ Checksum verified for ${pluginName}`)
-  }
+  // Verify checksum from plugin's own checksums.txt
+  await verifyPluginChecksum(pluginName, version, downloadPath, archiveFilename)
 
   // Extract archive
   let extractedPath: string
@@ -163,9 +137,8 @@ async function downloadPlugin(
   }
 
   // Find the plugin binary in extracted directory
-  // Binary name format: github_linux_x86_64 or github.exe on Windows
-  const binaryName = `${pluginName}_${osName}_${platform.arch}${binaryExt}`
-  const binaryPath = findPluginBinary(extractedPath, pluginName, binaryName)
+  // Binary is just the plugin name (e.g., github or github.exe on Windows)
+  const binaryPath = findPluginBinary(extractedPath, pluginName, binaryExt)
 
   if (!binaryPath) {
     throw new Error(`Binary not found in extracted archive for ${pluginName}`)
@@ -183,18 +156,62 @@ async function downloadPlugin(
   core.info(`  ✓ Installed ${pluginName}`)
 }
 
-function getPluginUrl(version: string, filename: string): string {
+function getPluginUrl(pluginName: string, version: string, filename: string): string {
+  const pluginRepo = `plugin-${pluginName}`
   if (version === 'latest') {
-    return `https://github.com/${REPO_OWNER}/${REPO_NAME}/releases/latest/download/${filename}`
+    return `https://github.com/${REPO_OWNER}/${pluginRepo}/releases/latest/download/${filename}`
   }
-  return `https://github.com/${REPO_OWNER}/${REPO_NAME}/releases/download/${version}/${filename}`
+  return `https://github.com/${REPO_OWNER}/${pluginRepo}/releases/download/${version}/${filename}`
 }
 
-function getChecksumUrl(version: string): string {
+function getPluginChecksumUrl(pluginName: string, version: string): string {
+  const pluginRepo = `plugin-${pluginName}`
   if (version === 'latest') {
-    return `https://github.com/${REPO_OWNER}/${REPO_NAME}/releases/latest/download/checksums.txt`
+    return `https://github.com/${REPO_OWNER}/${pluginRepo}/releases/latest/download/checksums.txt`
   }
-  return `https://github.com/${REPO_OWNER}/${REPO_NAME}/releases/download/${version}/checksums.txt`
+  return `https://github.com/${REPO_OWNER}/${pluginRepo}/releases/download/${version}/checksums.txt`
+}
+
+async function verifyPluginChecksum(
+  pluginName: string,
+  version: string,
+  archivePath: string,
+  filename: string
+): Promise<void> {
+  try {
+    const checksumUrl = getPluginChecksumUrl(pluginName, version)
+    const checksumsPath = await tc.downloadTool(checksumUrl)
+    const checksumsContent = fs.readFileSync(checksumsPath, 'utf-8')
+
+    let expectedChecksum: string | undefined
+    for (const line of checksumsContent.split('\n')) {
+      const parts = line.trim().split(/\s+/)
+      if (parts.length >= 2 && parts[1] === filename) {
+        expectedChecksum = parts[0]
+        break
+      }
+    }
+
+    if (!expectedChecksum) {
+      core.warning(`  Checksum not found for ${filename}, skipping verification`)
+      return
+    }
+
+    const crypto = await import('crypto')
+    const fileBuffer = fs.readFileSync(archivePath)
+    const actualChecksum = crypto.createHash('sha256').update(fileBuffer).digest('hex')
+
+    if (actualChecksum !== expectedChecksum) {
+      throw new Error(`Checksum mismatch for ${filename}`)
+    }
+
+    core.info(`  ✓ Checksum verified for ${pluginName}`)
+  } catch (error) {
+    if (error instanceof Error && error.message.includes('Checksum mismatch')) {
+      throw error
+    }
+    core.warning(`  Failed to verify checksum for ${pluginName}: ${error}`)
+  }
 }
 
 function detectPlatform(): Platform {
@@ -319,29 +336,28 @@ function findBinary(extractedPath: string, binaryName: string): string | null {
 function findPluginBinary(
   extractedPath: string,
   pluginName: string,
-  binaryName: string
+  binaryExt: string
 ): string | null {
-  // Check root directory first for exact binary name (e.g., github_linux_x86_64)
+  // Plugin binary is just the plugin name (e.g., github or github.exe on Windows)
+  const binaryName = `${pluginName}${binaryExt}`
+
+  // Check root directory first
   const rootPath = path.join(extractedPath, binaryName)
   if (fs.existsSync(rootPath)) {
     return rootPath
   }
 
-  // Also check for just the plugin name (e.g., github or github.exe)
+  // Search in extracted files
   const entries = fs.readdirSync(extractedPath, {withFileTypes: true})
   for (const entry of entries) {
     if (entry.isFile()) {
       const name = entry.name.toLowerCase()
       // Match plugin name with or without extension
-      if (name === pluginName || name === `${pluginName}.exe`) {
-        return path.join(extractedPath, entry.name)
-      }
-      // Match the full binary name
-      if (name === binaryName.toLowerCase()) {
+      if (name === pluginName.toLowerCase() || name === binaryName.toLowerCase()) {
         return path.join(extractedPath, entry.name)
       }
     }
-    // Check subdirectories
+    // Check subdirectories (e.g., if archive contains a folder)
     if (entry.isDirectory()) {
       const subPath = path.join(extractedPath, entry.name, binaryName)
       if (fs.existsSync(subPath)) {
