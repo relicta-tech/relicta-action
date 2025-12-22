@@ -4,7 +4,7 @@ jspm_packages/
 
 # Build outputs
 lib/
-dist/
+# Note: dist/ is NOT ignored - must be committed for GitHub Actions
 *.tsbuildinfo
 
 # Test coverage

@@ -28340,27 +28340,43 @@ async function installPlugins(version, plugins, relictaBinaryPath) {
     core.info(`✓ Plugins installed to: ${pluginsDir}`);
 }
 async function downloadPlugin(version, pluginName, platform, pluginsDir, checksums) {
-    // Plugin binary naming: github_linux_x86_64, slack_darwin_aarch64, etc.
+    // Plugin archive naming: github_linux_x86_64.tar.gz, slack_darwin_aarch64.tar.gz, etc.
     const osName = platform.os.toLowerCase();
-    const ext = platform.os === 'Windows' ? '.exe' : '';
-    const filename = `${pluginName}_${osName}_${platform.arch}${ext}`;
-    const url = getPluginUrl(version, filename);
+    const archiveExt = platform.os === 'Windows' ? '.zip' : '.tar.gz';
+    const binaryExt = platform.os === 'Windows' ? '.exe' : '';
+    const archiveFilename = `${pluginName}_${osName}_${platform.arch}${archiveExt}`;
+    const url = getPluginUrl(version, archiveFilename);
     core.info(`  Downloading ${pluginName} from: ${url}`);
     const downloadPath = await tc.downloadTool(url);
     // Verify checksum if available
-    const expectedChecksum = checksums.get(filename);
+    const expectedChecksum = checksums.get(archiveFilename);
     if (expectedChecksum) {
         const crypto = await Promise.resolve().then(() => __importStar(__nccwpck_require__(6982)));
         const fileBuffer = fs.readFileSync(downloadPath);
         const actualChecksum = crypto.createHash('sha256').update(fileBuffer).digest('hex');
         if (actualChecksum !== expectedChecksum) {
-            throw new Error(`Checksum mismatch for ${filename}`);
+            throw new Error(`Checksum mismatch for ${archiveFilename}`);
         }
         core.info(`  ✓ Checksum verified for ${pluginName}`);
     }
+    // Extract archive
+    let extractedPath;
+    if (archiveFilename.endsWith('.tar.gz')) {
+        extractedPath = await tc.extractTar(downloadPath);
+    }
+    else {
+        extractedPath = await tc.extractZip(downloadPath);
+    }
+    // Find the plugin binary in extracted directory
+    // Binary name format: github_linux_x86_64 or github.exe on Windows
+    const binaryName = `${pluginName}_${osName}_${platform.arch}${binaryExt}`;
+    const binaryPath = findPluginBinary(extractedPath, pluginName, binaryName);
+    if (!binaryPath) {
+        throw new Error(`Binary not found in extracted archive for ${pluginName}`);
+    }
     // Move to plugins directory with relicta- prefix (required by plugin loader)
-    const targetPath = path.join(pluginsDir, `relicta-${pluginName}${ext}`);
-    fs.copyFileSync(downloadPath, targetPath);
+    const targetPath = path.join(pluginsDir, `relicta-${pluginName}${binaryExt}`);
+    fs.copyFileSync(binaryPath, targetPath);
     // Make executable on Unix
     if (platform.os !== 'Windows') {
         await exec.exec('chmod', ['+x', targetPath]);
@@ -28472,6 +28488,36 @@ function findBinary(extractedPath, binaryName) {
     const entries = fs.readdirSync(extractedPath, { withFileTypes: true });
     for (const entry of entries) {
         if (entry.isDirectory() && entry.name.startsWith('relicta')) {
+            const subPath = path.join(extractedPath, entry.name, binaryName);
+            if (fs.existsSync(subPath)) {
+                return subPath;
+            }
+        }
+    }
+    return null;
+}
+function findPluginBinary(extractedPath, pluginName, binaryName) {
+    // Check root directory first for exact binary name (e.g., github_linux_x86_64)
+    const rootPath = path.join(extractedPath, binaryName);
+    if (fs.existsSync(rootPath)) {
+        return rootPath;
+    }
+    // Also check for just the plugin name (e.g., github or github.exe)
+    const entries = fs.readdirSync(extractedPath, { withFileTypes: true });
+    for (const entry of entries) {
+        if (entry.isFile()) {
+            const name = entry.name.toLowerCase();
+            // Match plugin name with or without extension
+            if (name === pluginName || name === `${pluginName}.exe`) {
+                return path.join(extractedPath, entry.name);
+            }
+            // Match the full binary name
+            if (name === binaryName.toLowerCase()) {
+                return path.join(extractedPath, entry.name);
+            }
+        }
+        // Check subdirectories
+        if (entry.isDirectory()) {
             const subPath = path.join(extractedPath, entry.name, binaryName);
             if (fs.existsSync(subPath)) {
                 return subPath;
