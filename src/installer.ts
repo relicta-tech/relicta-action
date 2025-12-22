@@ -137,8 +137,9 @@ async function downloadPlugin(
   }
 
   // Find the plugin binary in extracted directory
-  // Binary is just the plugin name (e.g., github or github.exe on Windows)
-  const binaryPath = findPluginBinary(extractedPath, pluginName, binaryExt)
+  // Binary can be: github, github.exe, or github_linux_x86_64, github_darwin_aarch64.exe, etc.
+  const platformBinaryName = `${pluginName}_${osName}_${platform.arch}`
+  const binaryPath = findPluginBinary(extractedPath, pluginName, platformBinaryName, binaryExt)
 
   if (!binaryPath) {
     throw new Error(`Binary not found in extracted archive for ${pluginName}`)
@@ -336,15 +337,26 @@ function findBinary(extractedPath: string, binaryName: string): string | null {
 function findPluginBinary(
   extractedPath: string,
   pluginName: string,
+  platformBinaryName: string,
   binaryExt: string
 ): string | null {
-  // Plugin binary is just the plugin name (e.g., github or github.exe on Windows)
-  const binaryName = `${pluginName}${binaryExt}`
+  // Plugin binary can be named:
+  // - github (simple name)
+  // - github.exe (simple name with extension)
+  // - github_linux_x86_64 (platform-specific name)
+  // - github_windows_x86_64.exe (platform-specific with extension)
+  const simpleName = `${pluginName}${binaryExt}`
+  const platformName = `${platformBinaryName}${binaryExt}`
 
-  // Check root directory first
-  const rootPath = path.join(extractedPath, binaryName)
-  if (fs.existsSync(rootPath)) {
-    return rootPath
+  // List of possible binary names to search for
+  const possibleNames = [platformName, simpleName, pluginName, platformBinaryName]
+
+  // Check root directory first for all possible names
+  for (const name of possibleNames) {
+    const rootPath = path.join(extractedPath, name)
+    if (fs.existsSync(rootPath)) {
+      return rootPath
+    }
   }
 
   // Search in extracted files
@@ -352,16 +364,20 @@ function findPluginBinary(
   for (const entry of entries) {
     if (entry.isFile()) {
       const name = entry.name.toLowerCase()
-      // Match plugin name with or without extension
-      if (name === pluginName.toLowerCase() || name === binaryName.toLowerCase()) {
-        return path.join(extractedPath, entry.name)
+      // Match any of the possible names (case-insensitive)
+      for (const possibleName of possibleNames) {
+        if (name === possibleName.toLowerCase()) {
+          return path.join(extractedPath, entry.name)
+        }
       }
     }
     // Check subdirectories (e.g., if archive contains a folder)
     if (entry.isDirectory()) {
-      const subPath = path.join(extractedPath, entry.name, binaryName)
-      if (fs.existsSync(subPath)) {
-        return subPath
+      for (const possibleName of possibleNames) {
+        const subPath = path.join(extractedPath, entry.name, possibleName)
+        if (fs.existsSync(subPath)) {
+          return subPath
+        }
       }
     }
   }
