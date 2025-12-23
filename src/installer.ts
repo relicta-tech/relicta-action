@@ -74,11 +74,11 @@ export async function installRelicta(version: string): Promise<string> {
 }
 
 /**
- * Install specified plugins for the current platform.
- * Each plugin is downloaded from its own repo: relicta-tech/plugin-{name}
+ * Install specified plugins using relicta's built-in plugin installer.
+ * This delegates to `relicta plugin install` to ensure compatibility.
  */
 export async function installPlugins(
-  version: string,
+  _version: string,
   plugins: string[],
   relictaBinaryPath: string
 ): Promise<void> {
@@ -88,131 +88,18 @@ export async function installPlugins(
 
   core.info(`Installing plugins: ${plugins.join(', ')}`)
 
-  const platform = detectPlatform()
-  const pluginsDir = path.join(path.dirname(relictaBinaryPath), 'plugins')
-
-  // Create plugins directory
-  if (!fs.existsSync(pluginsDir)) {
-    fs.mkdirSync(pluginsDir, {recursive: true})
-  }
-
-  // Download each plugin from its own repo
+  // Use relicta's own plugin installer for each plugin
   for (const pluginName of plugins) {
     try {
-      await downloadPlugin(version, pluginName, platform, pluginsDir)
+      core.info(`  Installing ${pluginName}...`)
+      await exec.exec(relictaBinaryPath, ['plugin', 'install', pluginName])
+      core.info(`  ✓ Installed ${pluginName}`)
     } catch (error) {
       core.warning(`Failed to install plugin ${pluginName}: ${error}`)
     }
   }
 
-  core.info(`✓ Plugins installed to: ${pluginsDir}`)
-}
-
-async function downloadPlugin(
-  version: string,
-  pluginName: string,
-  platform: Platform,
-  pluginsDir: string
-): Promise<void> {
-  // Plugin archive naming: github_darwin_aarch64.tar.gz, slack_linux_x86_64.tar.gz, etc.
-  const osName = platform.os.toLowerCase()
-  const archiveExt = platform.os === 'Windows' ? '.zip' : '.tar.gz'
-  const binaryExt = platform.os === 'Windows' ? '.exe' : ''
-  const archiveFilename = `${pluginName}_${osName}_${platform.arch}${archiveExt}`
-
-  const url = getPluginUrl(pluginName, version, archiveFilename)
-  core.info(`  Downloading ${pluginName} from: ${url}`)
-
-  const downloadPath = await tc.downloadTool(url)
-
-  // Verify checksum from plugin's own checksums.txt
-  await verifyPluginChecksum(pluginName, version, downloadPath, archiveFilename)
-
-  // Extract archive
-  let extractedPath: string
-  if (archiveFilename.endsWith('.tar.gz')) {
-    extractedPath = await tc.extractTar(downloadPath)
-  } else {
-    extractedPath = await tc.extractZip(downloadPath)
-  }
-
-  // Find the plugin binary in extracted directory
-  // Binary can be: github, github.exe, or github_linux_x86_64, github_darwin_aarch64.exe, etc.
-  const platformBinaryName = `${pluginName}_${osName}_${platform.arch}`
-  const binaryPath = findPluginBinary(extractedPath, pluginName, platformBinaryName, binaryExt)
-
-  if (!binaryPath) {
-    throw new Error(`Binary not found in extracted archive for ${pluginName}`)
-  }
-
-  // Move to plugins directory with relicta- prefix (required by plugin loader)
-  const targetPath = path.join(pluginsDir, `relicta-${pluginName}${binaryExt}`)
-  fs.copyFileSync(binaryPath, targetPath)
-
-  // Make executable on Unix
-  if (platform.os !== 'Windows') {
-    await exec.exec('chmod', ['+x', targetPath])
-  }
-
-  core.info(`  ✓ Installed ${pluginName}`)
-}
-
-function getPluginUrl(pluginName: string, version: string, filename: string): string {
-  const pluginRepo = `plugin-${pluginName}`
-  if (version === 'latest') {
-    return `https://github.com/${REPO_OWNER}/${pluginRepo}/releases/latest/download/${filename}`
-  }
-  return `https://github.com/${REPO_OWNER}/${pluginRepo}/releases/download/${version}/${filename}`
-}
-
-function getPluginChecksumUrl(pluginName: string, version: string): string {
-  const pluginRepo = `plugin-${pluginName}`
-  if (version === 'latest') {
-    return `https://github.com/${REPO_OWNER}/${pluginRepo}/releases/latest/download/checksums.txt`
-  }
-  return `https://github.com/${REPO_OWNER}/${pluginRepo}/releases/download/${version}/checksums.txt`
-}
-
-async function verifyPluginChecksum(
-  pluginName: string,
-  version: string,
-  archivePath: string,
-  filename: string
-): Promise<void> {
-  try {
-    const checksumUrl = getPluginChecksumUrl(pluginName, version)
-    const checksumsPath = await tc.downloadTool(checksumUrl)
-    const checksumsContent = fs.readFileSync(checksumsPath, 'utf-8')
-
-    let expectedChecksum: string | undefined
-    for (const line of checksumsContent.split('\n')) {
-      const parts = line.trim().split(/\s+/)
-      if (parts.length >= 2 && parts[1] === filename) {
-        expectedChecksum = parts[0]
-        break
-      }
-    }
-
-    if (!expectedChecksum) {
-      core.warning(`  Checksum not found for ${filename}, skipping verification`)
-      return
-    }
-
-    const crypto = await import('crypto')
-    const fileBuffer = fs.readFileSync(archivePath)
-    const actualChecksum = crypto.createHash('sha256').update(fileBuffer).digest('hex')
-
-    if (actualChecksum !== expectedChecksum) {
-      throw new Error(`Checksum mismatch for ${filename}`)
-    }
-
-    core.info(`  ✓ Checksum verified for ${pluginName}`)
-  } catch (error) {
-    if (error instanceof Error && error.message.includes('Checksum mismatch')) {
-      throw error
-    }
-    core.warning(`  Failed to verify checksum for ${pluginName}: ${error}`)
-  }
+  core.info(`✓ Plugins installed`)
 }
 
 function detectPlatform(): Platform {
@@ -327,57 +214,6 @@ function findBinary(extractedPath: string, binaryName: string): string | null {
       const subPath = path.join(extractedPath, entry.name, binaryName)
       if (fs.existsSync(subPath)) {
         return subPath
-      }
-    }
-  }
-
-  return null
-}
-
-function findPluginBinary(
-  extractedPath: string,
-  pluginName: string,
-  platformBinaryName: string,
-  binaryExt: string
-): string | null {
-  // Plugin binary can be named:
-  // - github (simple name)
-  // - github.exe (simple name with extension)
-  // - github_linux_x86_64 (platform-specific name)
-  // - github_windows_x86_64.exe (platform-specific with extension)
-  const simpleName = `${pluginName}${binaryExt}`
-  const platformName = `${platformBinaryName}${binaryExt}`
-
-  // List of possible binary names to search for
-  const possibleNames = [platformName, simpleName, pluginName, platformBinaryName]
-
-  // Check root directory first for all possible names
-  for (const name of possibleNames) {
-    const rootPath = path.join(extractedPath, name)
-    if (fs.existsSync(rootPath)) {
-      return rootPath
-    }
-  }
-
-  // Search in extracted files
-  const entries = fs.readdirSync(extractedPath, {withFileTypes: true})
-  for (const entry of entries) {
-    if (entry.isFile()) {
-      const name = entry.name.toLowerCase()
-      // Match any of the possible names (case-insensitive)
-      for (const possibleName of possibleNames) {
-        if (name === possibleName.toLowerCase()) {
-          return path.join(extractedPath, entry.name)
-        }
-      }
-    }
-    // Check subdirectories (e.g., if archive contains a folder)
-    if (entry.isDirectory()) {
-      for (const possibleName of possibleNames) {
-        const subPath = path.join(extractedPath, entry.name, possibleName)
-        if (fs.existsSync(subPath)) {
-          return subPath
-        }
       }
     }
   }
