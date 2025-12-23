@@ -43,32 +43,24 @@ export async function runRelicta(binaryPath: string, inputs: ActionInputs): Prom
 
     // Execute command(s)
     switch (inputs.command.toLowerCase()) {
-      case 'full': {
-        // Run complete workflow
-        await executeCommand(binaryPath, ['plan', ...commonArgs], env, inputs.workingDirectory)
-        await executeCommand(binaryPath, ['bump', ...commonArgs], env, inputs.workingDirectory)
-        await executeCommand(binaryPath, ['notes', ...commonArgs], env, inputs.workingDirectory)
-
+      case 'full':
+      case 'release': {
+        // Run complete workflow using the unified release command
+        // This handles tag-push detection and state machine transitions correctly
+        const releaseArgs = ['release', ...commonArgs]
         if (inputs.autoApprove) {
-          await executeCommand(
-            binaryPath,
-            ['approve', '--yes', ...commonArgs],
-            env,
-            inputs.workingDirectory
-          )
-        } else {
-          await executeCommand(binaryPath, ['approve', ...commonArgs], env, inputs.workingDirectory)
+          releaseArgs.push('--yes')
         }
 
-        const publishOutput = await executeCommand(
+        const releaseOutput = await executeCommand(
           binaryPath,
-          ['publish', ...commonArgs],
+          releaseArgs,
           env,
           inputs.workingDirectory
         )
 
-        // Parse outputs from publish command
-        parsePublishOutput(publishOutput, outputs)
+        // Parse outputs from release command
+        parsePublishOutput(releaseOutput, outputs)
         break
       }
 

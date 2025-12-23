@@ -13,7 +13,7 @@ inputs:
     default: 'latest'
   
   command:
-    description: 'Command to run: full (default), plan, bump, notes, approve, publish, or custom'
+    description: 'Command to run: full/release (default), plan, bump, notes, approve, publish, or custom. Both full and release use the unified release command with smart tag-push detection.'
     required: false
     default: 'full'
   
