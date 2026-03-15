@@ -16,7 +16,7 @@ export async function installRelicta(version: string): Promise<string> {
   if (cachedPath) {
     core.info(`Found cached relicta at ${cachedPath}`)
     const platform = detectPlatform()
-    const binaryName = platform.os === 'Windows' ? 'relicta.exe' : 'relicta'
+    const binaryName = platform.os === 'windows' ? 'relicta.exe' : 'relicta'
     const cachedBinary = findBinary(cachedPath, binaryName)
     if (cachedBinary) {
       return cachedBinary
@@ -52,7 +52,7 @@ export async function installRelicta(version: string): Promise<string> {
   core.info(`Extracted to: ${extractedPath}`)
 
   // Find binary in extracted directory
-  const binaryName = platform.os === 'Windows' ? 'relicta.exe' : 'relicta'
+  const binaryName = platform.os === 'windows' ? 'relicta.exe' : 'relicta'
   const binaryPath = findBinary(extractedPath, binaryName)
 
   if (!binaryPath) {
@@ -62,7 +62,7 @@ export async function installRelicta(version: string): Promise<string> {
   core.info(`Found binary at: ${binaryPath}`)
 
   // Make binary executable (Unix)
-  if (platform.os !== 'Windows') {
+  if (platform.os !== 'windows') {
     await exec.exec('chmod', ['+x', binaryPath])
   }
 
@@ -109,22 +109,22 @@ function detectPlatform(): Platform {
   let os: string
   let arch: string
 
-  // Normalize OS names
+  // Map Node.js platform names to Go GOOS values (used by GoReleaser)
   if (platformOs === 'darwin') {
-    os = 'Darwin'
+    os = 'darwin'
   } else if (platformOs === 'linux') {
-    os = 'Linux'
+    os = 'linux'
   } else if (platformOs === 'win32') {
-    os = 'Windows'
+    os = 'windows'
   } else {
     throw new Error(`Unsupported OS: ${platformOs}`)
   }
 
-  // Normalize arch names
+  // Map Node.js arch names to Go GOARCH values (used by GoReleaser)
   if (platformArch === 'x64') {
-    arch = 'x86_64'
+    arch = 'amd64'
   } else if (platformArch === 'arm64') {
-    arch = 'aarch64'
+    arch = 'arm64'
   } else {
     throw new Error(`Unsupported architecture: ${platformArch}`)
   }
@@ -133,7 +133,7 @@ function detectPlatform(): Platform {
 }
 
 function getDownloadInfo(version: string, platform: Platform): DownloadInfo {
-  const ext = platform.os === 'Windows' ? 'zip' : 'tar.gz'
+  const ext = platform.os === 'windows' ? 'zip' : 'tar.gz'
   const filename = `relicta_${platform.os}_${platform.arch}.${ext}`
 
   let url: string
