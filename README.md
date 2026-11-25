@@ -19,7 +19,7 @@
 
 **No Go, Make, or build tools needed!** Just add the action to your workflow and you're done. The action automatically:
 - Downloads the correct Relicta binary for your platform
-- Verifies checksums for security
+- Verifies the downloaded archive against its release checksum before extraction
 - Caches binaries for fast subsequent runs
 - Handles all the complexity behind the scenes
 
@@ -510,7 +510,10 @@ The action automatically detects and downloads the correct binary for:
 ## Security
 
 - Binaries are downloaded from official GitHub releases
-- SHA256 checksums are verified for integrity
+- The installer fails before extraction if the checksum manifest is unavailable,
+  missing an exact archive entry, malformed, or does not match the downloaded archive
+- A matching checksum verifies archive integrity against the manifest; it does not
+  authenticate the manifest publisher
 - Binaries are cached using GitHub Actions cache
 - GitHub token is only used for release operations
 
