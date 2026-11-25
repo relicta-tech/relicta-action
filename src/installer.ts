@@ -158,46 +158,36 @@ async function verifyChecksum(
   checksumUrl: string,
   filename: string
 ): Promise<void> {
-  try {
-    core.info('Verifying checksum...')
+  core.info('Verifying checksum...')
 
-    // Download checksums file
-    const checksumsPath = await tc.downloadTool(checksumUrl)
-    const checksumsContent = fs.readFileSync(checksumsPath, 'utf-8')
+  // Download or parse failures must stop installation before an unverified
+  // binary is extracted or executed.
+  const checksumsPath = await tc.downloadTool(checksumUrl)
+  const checksumsContent = fs.readFileSync(checksumsPath, 'utf-8')
 
-    // Parse checksums file
-    const lines = checksumsContent.split('\n')
-    let expectedChecksum: string | undefined
+  const matches = checksumsContent
+    .split('\n')
+    .map(line => line.trim().split(/\s+/))
+    .filter(parts => parts.length >= 2 && parts[1] === filename)
 
-    for (const line of lines) {
-      const parts = line.trim().split(/\s+/)
-      if (parts.length >= 2 && parts[1] === filename) {
-        expectedChecksum = parts[0]
-        break
-      }
-    }
-
-    if (!expectedChecksum) {
-      core.warning(`Checksum not found for ${filename}, skipping verification`)
-      return
-    }
-
-    // Calculate actual checksum
-    const crypto = await import('crypto')
-    const fileBuffer = fs.readFileSync(archivePath)
-    const actualChecksum = crypto.createHash('sha256').update(fileBuffer).digest('hex')
-
-    if (actualChecksum !== expectedChecksum) {
-      throw new Error(
-        `Checksum mismatch!\nExpected: ${expectedChecksum}\nActual: ${actualChecksum}`
-      )
-    }
-
-    core.info('✓ Checksum verified')
-  } catch (error) {
-    core.warning(`Failed to verify checksum: ${error}`)
-    // Don't fail on checksum errors, just warn
+  if (matches.length !== 1) {
+    throw new Error(`Expected exactly one checksum entry for ${filename}, found ${matches.length}`)
   }
+
+  const expectedChecksum = matches[0][0]
+  if (!/^[a-fA-F0-9]{64}$/.test(expectedChecksum)) {
+    throw new Error(`Invalid SHA-256 checksum for ${filename}`)
+  }
+
+  const crypto = await import('crypto')
+  const fileBuffer = fs.readFileSync(archivePath)
+  const actualChecksum = crypto.createHash('sha256').update(fileBuffer).digest('hex')
+
+  if (actualChecksum.toLowerCase() !== expectedChecksum.toLowerCase()) {
+    throw new Error(`Checksum mismatch!\nExpected: ${expectedChecksum}\nActual: ${actualChecksum}`)
+  }
+
+  core.info('✓ Checksum verified')
 }
 
 function findBinary(extractedPath: string, binaryName: string): string | null {
